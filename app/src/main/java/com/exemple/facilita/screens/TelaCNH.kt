@@ -12,9 +12,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
-fun TelaCnh(
+fun TelaCNH(
+    navController: NavController.Companion,
     onSalvar: () -> Unit = {},
     onVoltar: (() -> Unit)? = null
 ) {
@@ -88,6 +90,6 @@ fun TelaCnh(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewTelaCnh() {
-    TelaCnh()
+fun PreviewTelaCNH() {
+    TelaCNH(NavController)
 }

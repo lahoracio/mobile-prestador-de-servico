@@ -45,13 +45,13 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         // 🟢 NOVAS TELAS DE DOCUMENTOS
-        composable("tela_cnh") {
-            TelaCNH(navController)
-        }
-
-        composable("tela_rgcpf") {
-            TelaDocumentos(navController)
-        }
+//        composable("tela_cnh") {
+//            TelaCNH(navController)
+//        }
+//
+//        composable("tela_rgcpf") {
+//            TelaDocumentos(navController)
+//        }
 
         composable("tela_contato") {
             TelaContatoEmergencia(navController)
