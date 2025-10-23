@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">facilita</string>
+    <string name="bem_vindo">BEM VINDO AO FACILITA</string>
+    <string name="facilita_seu_dia">Facilitando seu dia a dia com segurança e praticidade</string>
+    <string name="acompanhamento">ACOMPANHAMENTO</string>
+    <string name="acompanhe">Acompanhe em tempo real cada etapa do seu pedido</string>
+    <string name="conexao">CONEXÃO</string>
+    <string name="conecte">Conecte-se a prestadores de confiança, sempre que precisar</string>
+    <string name="google_maps_key">AIzaSyBKFwfrLdbTreqsOwnpMS9-zt9KD-HEH28</string>
+
+    <!--    <string name=""></string>-->
+</resources>
