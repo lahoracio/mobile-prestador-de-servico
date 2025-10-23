@@ -23,28 +23,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
 
 @Composable
 fun TelaCompletarPerfilPrestador(
-    navController: androidx.navigation.NavController,
+    navController: NavController,
     onFinalizar: () -> Unit = {},
     onVoltar: (() -> Unit)? = null
 ) {
-    var regiao by remember { mutableStateOf(TextFieldValue("Jandira, SP")) }
     var endereco by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Lista de opções com destino de navegação
+    // Lista de documentos e suas rotas correspondentes
     val opcoesDocs = listOf(
-        "Foto da CNH com EAR" to "telaCNH",
-        "Foto do RG e CPF" to "telaDocumentos",
-        "Contato de emergência" to "telaContatoEmergencia",
-        "Informações do veículo" to null
+        "CNH com EAR" to "tela_cnh",
+        "RG e CPF" to "tela_rgcpf",
+        "Contato de emergência" to "tela_contato",
+        "Informações do veículo" to "tela_veiculo"
     )
-    Scaffold(
-        containerColor = Color(0xFFE6E6E6)
-    ) { padding ->
+
+    Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -52,11 +51,8 @@ fun TelaCompletarPerfilPrestador(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Foto de perfil com ícone sobreposto
-            Box(
-                modifier = Modifier.size(130.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            // FOTO DE PERFIL
+            Box(modifier = Modifier.size(130.dp), contentAlignment = Alignment.Center) {
                 Box(
                     modifier = Modifier
                         .size(120.dp)
@@ -87,7 +83,6 @@ fun TelaCompletarPerfilPrestador(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 text = "Bem vindo entregador",
                 fontWeight = FontWeight.Bold,
@@ -101,11 +96,9 @@ fun TelaCompletarPerfilPrestador(
                 color = Color.DarkGray,
                 textAlign = TextAlign.Center
             )
-
             Spacer(modifier = Modifier.height(24.dp))
-            
 
-
+            // CAMPO ENDEREÇO
             OutlinedTextField(
                 value = endereco,
                 onValueChange = { endereco = it },
@@ -115,24 +108,20 @@ fun TelaCompletarPerfilPrestador(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-
             Text(
                 text = "Cadastre alguns documentos para a validação do seu serviço",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Lista de itens
+            // LISTA DE DOCUMENTOS
             Column(modifier = Modifier.fillMaxWidth()) {
-                opcoesDocs.forEach { (texto, rota) ->
+                opcoesDocs.forEach { (titulo, rota) ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                rota?.let { navController.navigate(it) }
-                            }
+                            .clickable { navController.navigate(rota) }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -145,7 +134,7 @@ fun TelaCompletarPerfilPrestador(
                                     .background(Color(0xFFD9D9D9))
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(texto, fontSize = 15.sp)
+                            Text(titulo, fontSize = 15.sp)
                         }
                         Icon(
                             imageVector = Icons.Default.ArrowForwardIos,
@@ -159,7 +148,6 @@ fun TelaCompletarPerfilPrestador(
             }
 
             Spacer(modifier = Modifier.height(140.dp))
-
             Box(
                 modifier = Modifier
                     .width(220.dp)
@@ -185,7 +173,7 @@ fun TelaCompletarPerfilPrestador(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewTelaCompletarPerfilPrestador() {
+fun TelaCompletarPerfilPrestadorPreview() {
     val navController = rememberNavController()
     TelaCompletarPerfilPrestador(navController = navController)
 }
