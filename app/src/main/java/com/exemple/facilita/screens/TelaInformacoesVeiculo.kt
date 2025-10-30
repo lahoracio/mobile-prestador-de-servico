@@ -90,17 +90,8 @@ fun TelaInformacoesVeiculo(navController: NavController) {
                             .clip(CircleShape)
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .absoluteOffset(x = -8.dp, y = -3.dp)
-                        .size(28.dp)
-                        .background(Color(0xFF019D31), CircleShape)
-                        .padding(5.dp)
-                )
+
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
