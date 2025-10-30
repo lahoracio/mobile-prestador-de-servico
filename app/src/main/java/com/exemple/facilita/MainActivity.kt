@@ -49,21 +49,9 @@ fun AppNavHost(navController: NavHostController) {
             TelaCompletarPerfilPrestador(navController)
         }
 
-        // 🟢 NOVAS TELAS DE DOCUMENTOS
-//        composable("tela_cnh") {
-//            TelaCNH(navController)
-//        }
-//
-//        composable("tela_rgcpf") {
-//            TelaDocumentos(navController)
-//        }
-
-        composable("tela_contato") {
-            TelaContatoEmergencia(navController)
-        }
-
         composable("tela_veiculo") {
             TelaInformacoesVeiculo(navController)
         }
+
     }
 }

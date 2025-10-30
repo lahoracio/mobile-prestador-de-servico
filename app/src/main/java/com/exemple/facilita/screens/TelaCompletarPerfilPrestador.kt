@@ -38,8 +38,7 @@ fun TelaCompletarPerfilPrestador(
     // Lista de documentos e suas rotas correspondentes
     val opcoesDocs = listOf(
         "CNH com EAR" to "tela_cnh",
-        "RG e CPF" to "tela_rgcpf",
-        "Contato de emergência" to "tela_contato",
+        "Documentos" to "tela_documentos",
         "Informações do veículo" to "tela_veiculo"
     )
 
@@ -61,7 +60,7 @@ fun TelaCompletarPerfilPrestador(
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.foto_perfil),
+                        painter = painterResource(id = R.drawable.icontiposervico),
                         contentDescription = "Foto de perfil",
                         modifier = Modifier
                             .size(120.dp)
