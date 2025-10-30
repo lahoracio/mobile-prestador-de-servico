@@ -24,10 +24,15 @@ class MainActivity : ComponentActivity() {
 fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = "tela_completar_perfil_prestador"
+        startDestination = "tela_inicio_prestador"
     ) {
 
         // Telas já existentes
+
+        // 🟢 Nova rota para a tela inicial do prestador
+        composable("tela_inicio_prestador") {
+            TelaInicioPrestador()
+        }
         composable("tela_tipo_veiculo") {
             TelaTipoVeiculo(navController)
         }
