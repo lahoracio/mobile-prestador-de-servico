@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = "tela_inicio_prestador"
+        startDestination = "tela_completar_perfil_prestador"
     ) {
 
         // Telas já existentes
@@ -47,6 +47,10 @@ fun AppNavHost(navController: NavHostController) {
 
         composable("tela_completar_perfil_prestador") {
             TelaCompletarPerfilPrestador(navController)
+        }
+
+        composable("tela_cnh") {
+            TelaCNH(navController)
         }
 
         composable("tela_veiculo") {

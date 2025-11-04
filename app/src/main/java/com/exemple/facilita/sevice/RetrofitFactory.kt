@@ -19,4 +19,7 @@ class RetrofitFactory {
 
     //fun getUserService(): UserService = retrofitUser.create(UserService::class.java)
     fun getServicoService(): ServicoService = retrofit.create(ServicoService::class.java)
+
+    fun getCNHService(): CNHService = retrofit.create(CNHService::class.java)
 }
+

@@ -26,10 +26,15 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
+import com.exemple.facilita.viewmodel.CNHViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaCNH(navController: NavController) {
+
+    val viewModel: CNHViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val mensagem by viewModel.mensagem.collectAsState()
+
     var categoriaExpanded by remember { mutableStateOf(false) }
     val categorias = listOf("A", "B", "AB", "C", "D", "E")
     var categoria by remember { mutableStateOf("") }
@@ -45,7 +50,7 @@ fun TelaCNH(navController: NavController) {
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 0.dp),
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Ícone Voltar
@@ -152,7 +157,7 @@ fun TelaCNH(navController: NavController) {
                 value = validade,
                 onValueChange = { validade = it },
                 label = { Text("Validade da CNH") },
-                placeholder = { Text("Ex: 12/08/2028") },
+                placeholder = { Text("Ex: 2028-12-31") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -191,7 +196,7 @@ fun TelaCNH(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão Finalizar
+            // ✅ Botão Finalizar (corrigido)
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
@@ -203,15 +208,34 @@ fun TelaCNH(navController: NavController) {
                         shape = RoundedCornerShape(50)
                     )
                     .clickable {
-                        navController.popBackStack()
+                        val token =
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OTYsInRpcG9fY29udGEiOm51bGwsImVtYWlsIjoicm9iZXJ0b29AZ21haWwuY29tIiwiaWF0IjoxNzYyMjY0ODM5LCJleHAiOjE3NjIyOTM2MzksImlzcyI6ImZhY2lsaXRhLWFwaSIsInN1YiI6Ijk2In0.wFrScyNh8vdbZbUVku197kWa1niGZnf221YxH9E8ZLs" // substitua pelo token real
+                        viewModel.validarCNH(
+                            token = token,
+                            numeroCNH = numeroCNH,
+                            categoria = categoria,
+                            validade = validade,
+                            possuiEAR = possuiEAR
+                        )
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Salvar",
+                    text = "Validar CNH",
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Medium
+                )
+            }
+
+            // ✅ Mensagem de retorno da API
+            mensagem?.let {
+                Text(
+                    text = it,
+                    color = if (it.startsWith("✅")) Color(0xFF00B94A) else Color.Red,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 16.dp)
                 )
             }
 
