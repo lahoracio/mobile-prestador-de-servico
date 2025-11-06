@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.exemple.facilita.model.Servico
 import com.exemple.facilita.service.ApiResponse
 import com.exemple.facilita.service.RetrofitFactory
 import retrofit2.Call
@@ -165,7 +164,7 @@ fun TelaInicioPrestador() {
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(
-                            imageVector = Icons.Default.ArrowForwardIos,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                             contentDescription = "Ver extrato",
                             tint = Color.White.copy(alpha = 0.7f),
                             modifier = Modifier.size(18.dp)

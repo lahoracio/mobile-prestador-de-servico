@@ -26,16 +26,31 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
+import com.exemple.facilita.viewmodel.DocumentoViewModel
+import com.exemple.facilita.viewmodel.PerfilViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaDocumentos(navController: NavController) {
+
+    val viewModel: DocumentoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val mensagem by viewModel.mensagem.collectAsState()
+    val documentosCadastrados by viewModel.documentosCadastrados.collectAsState()
+
+    // Observa quando ambos documentos são cadastrados e volta para a tela anterior
+    LaunchedEffect(documentosCadastrados) {
+        if (documentosCadastrados.contains("RG") && documentosCadastrados.contains("CPF")) {
+            perfilViewModel.marcarComoValidado("Documentos")
+            kotlinx.coroutines.delay(1500) // Aguarda 1.5s para mostrar a mensagem
+            navController.popBackStack()
+        }
+    }
+
     var rg by remember { mutableStateOf("") }
-    var orgaoEmissor by remember { mutableStateOf("") }
-    var dataEmissao by remember { mutableStateOf("") }
     var cpf by remember { mutableStateOf("") }
-    var nomeCompleto by remember { mutableStateOf("") }
-    var naturalidade by remember { mutableStateOf("") }
+    var dataValidadeRG by remember { mutableStateOf("") }
+    var dataValidadeCPF by remember { mutableStateOf("") }
 
     Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
         Column(
@@ -92,7 +107,7 @@ fun TelaDocumentos(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Preencha seus dados de RG e CPF",
+                text = "Cadastre seus documentos RG e CPF",
                 fontSize = 16.sp,
                 color = Color.DarkGray,
                 textAlign = TextAlign.Center
@@ -100,78 +115,96 @@ fun TelaDocumentos(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Campo Nome Completo
-            OutlinedTextField(
-                value = nomeCompleto,
-                onValueChange = { nomeCompleto = it },
-                label = { Text("Nome completo") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
+            // Mensagem de feedback
+            mensagem?.let {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (it.startsWith("✅")) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                    )
+                ) {
+                    Text(
+                        text = it,
+                        modifier = Modifier.padding(12.dp),
+                        color = if (it.startsWith("✅")) Color(0xFF2E7D32) else Color(0xFFC62828),
+                        fontSize = 14.sp
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            // ===== SEÇÃO RG =====
+            Text(
+                text = "RG",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Campo RG
             OutlinedTextField(
                 value = rg,
                 onValueChange = { rg = it },
                 label = { Text("Número do RG") },
-                placeholder = { Text("Ex: 12.345.678-9") },
+                placeholder = { Text("Ex: 123456789") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Campo Órgão Emissor
+            // Data de Validade do RG
             OutlinedTextField(
-                value = orgaoEmissor,
-                onValueChange = { orgaoEmissor = it },
-                label = { Text("Órgão emissor do RG") },
-                placeholder = { Text("Ex: SSP-SP") },
+                value = dataValidadeRG,
+                onValueChange = { dataValidadeRG = it },
+                label = { Text("Data de validade do RG") },
+                placeholder = { Text("Ex: 2030-12-31") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Campo Data de Emissão
-            OutlinedTextField(
-                value = dataEmissao,
-                onValueChange = { dataEmissao = it },
-                label = { Text("Data de emissão do RG") },
-                placeholder = { Text("Ex: 05/06/2018") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+            // ===== SEÇÃO CPF =====
+            Text(
+                text = "CPF",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Campo CPF
             OutlinedTextField(
                 value = cpf,
                 onValueChange = { cpf = it },
                 label = { Text("Número do CPF") },
-                placeholder = { Text("Ex: 123.456.789-00") },
+                placeholder = { Text("Ex: 12345678901 (11 dígitos)") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Campo Naturalidade
+            // Data de Validade do CPF
             OutlinedTextField(
-                value = naturalidade,
-                onValueChange = { naturalidade = it },
-                label = { Text("Naturalidade") },
-                placeholder = { Text("Cidade / Estado") },
+                value = dataValidadeCPF,
+                onValueChange = { dataValidadeCPF = it },
+                label = { Text("Data de validade do CPF") },
+                placeholder = { Text("Ex: 2030-12-31") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Verifique se todos os dados estão corretos antes de prosseguir.",
+                text = "Serão cadastrados 2 documentos: RG e CPF. Verifique se os dados estão corretos.",
                 fontSize = 14.sp,
                 color = Color.DarkGray,
                 textAlign = TextAlign.Center
@@ -179,7 +212,7 @@ fun TelaDocumentos(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão Salvar
+            // Botão Salvar Documentos
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
@@ -191,12 +224,48 @@ fun TelaDocumentos(navController: NavController) {
                         shape = RoundedCornerShape(50)
                     )
                     .clickable {
-                        navController.popBackStack()
+                        // Validação básica
+                        if (rg.isBlank() || cpf.isBlank() || dataValidadeRG.isBlank() || dataValidadeCPF.isBlank()) {
+                            viewModel.setMensagem("❌ Por favor, preencha todos os campos")
+                            return@clickable
+                        }
+
+                        // Validação do formato da data (YYYY-MM-DD)
+                        val dateRegex = Regex("""^\d{4}-\d{2}-\d{2}${'$'}""")
+                        if (!dataValidadeRG.matches(dateRegex) || !dataValidadeCPF.matches(dateRegex)) {
+                            viewModel.setMensagem("❌ Formato de data inválido. Use: AAAA-MM-DD (Ex: 2030-12-31)")
+                            return@clickable
+                        }
+
+                        // Validação do CPF (11 dígitos)
+                        val cpfLimpo = cpf.replace(Regex("[^0-9]"), "")
+                        if (cpfLimpo.length != 11) {
+                            viewModel.setMensagem("❌ CPF deve conter 11 dígitos")
+                            return@clickable
+                        }
+
+                        val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODYsInRpcG9fY29udGEiOiJQUkVTVEFET1IiLCJlbWFpbCI6Imdpb3Zhbm5hQGdtYWlsLmNvbSIsImlhdCI6MTc2MjQzMzU5NiwiZXhwIjoxNzYyNDYyMzk2fQ.5_XHwGBFhYTSFGbsQBILho56o2mm1FnzDUMZhN7RkoY"
+
+                        // Cadastrar RG
+                        viewModel.cadastrarDocumento(
+                            token = token,
+                            tipoDocumento = "RG",
+                            valor = rg,
+                            dataValidade = dataValidadeRG
+                        )
+
+                        // Cadastrar CPF
+                        viewModel.cadastrarDocumento(
+                            token = token,
+                            tipoDocumento = "CPF",
+                            valor = cpfLimpo,
+                            dataValidade = dataValidadeCPF
+                        )
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Salvar",
+                    text = "Salvar Documentos",
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Medium

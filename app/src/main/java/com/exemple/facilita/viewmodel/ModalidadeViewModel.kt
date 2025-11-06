@@ -2,46 +2,44 @@ package com.exemple.facilita.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.exemple.facilita.model.CNHRequest
+import com.exemple.facilita.model.ModalidadeRequest
 import com.exemple.facilita.service.RetrofitFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class CNHViewModel : ViewModel() {
+class ModalidadeViewModel : ViewModel() {
 
     private val _mensagem = MutableStateFlow<String?>(null)
     val mensagem = _mensagem.asStateFlow()
 
-    private val _cnhValidada = MutableStateFlow(false)
-    val cnhValidada = _cnhValidada.asStateFlow()
+    private val _modalidadesCadastradas = MutableStateFlow(false)
+    val modalidadesCadastradas = _modalidadesCadastradas.asStateFlow()
 
     fun setMensagem(msg: String) {
         _mensagem.value = msg
     }
 
-    fun validarCNH(
+    fun cadastrarModalidades(
         token: String,
-        numeroCNH: String,
-        categoria: String,
-        validade: String,
-        possuiEAR: Boolean
+        modalidades: List<String>
     ) {
         viewModelScope.launch {
             try {
-                val service = RetrofitFactory().getCNHService()
+                val service = RetrofitFactory().getModalidadeService()
 
-                val body = CNHRequest(
-                    numero_cnh = numeroCNH,
-                    categoria = categoria,
-                    validade = validade,
-                    possui_ear = possuiEAR
+                // Converte para maiúsculas conforme esperado pela API
+                val modalidadesUpper = modalidades.map { it.uppercase() }
+
+                val body = ModalidadeRequest(
+                    modalidades = modalidadesUpper
                 )
 
-                val response = service.cadastrarCNH("Bearer $token", body)
+                val response = service.cadastrarModalidades("Bearer $token", body)
 
                 _mensagem.value = "✅ ${response.message}"
-                _cnhValidada.value = true
+                _modalidadesCadastradas.value = true
+
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 _mensagem.value = "❌ Erro HTTP ${e.code()}: ${errorBody ?: e.message()}"
@@ -53,3 +51,4 @@ class CNHViewModel : ViewModel() {
         }
     }
 }
+

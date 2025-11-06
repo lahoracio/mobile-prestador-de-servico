@@ -2,46 +2,51 @@ package com.exemple.facilita.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.exemple.facilita.model.CNHRequest
+import com.exemple.facilita.model.DocumentoRequest
 import com.exemple.facilita.service.RetrofitFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class CNHViewModel : ViewModel() {
+class DocumentoViewModel : ViewModel() {
 
     private val _mensagem = MutableStateFlow<String?>(null)
     val mensagem = _mensagem.asStateFlow()
 
-    private val _cnhValidada = MutableStateFlow(false)
-    val cnhValidada = _cnhValidada.asStateFlow()
+    private val _documentosCadastrados = MutableStateFlow<MutableSet<String>>(mutableSetOf())
+    val documentosCadastrados = _documentosCadastrados.asStateFlow()
 
     fun setMensagem(msg: String) {
         _mensagem.value = msg
     }
 
-    fun validarCNH(
+    fun cadastrarDocumento(
         token: String,
-        numeroCNH: String,
-        categoria: String,
-        validade: String,
-        possuiEAR: Boolean
+        tipoDocumento: String,
+        valor: String,
+        dataValidade: String,
+        arquivoUrl: String = "https://exemplo.com/documento.pdf"
     ) {
         viewModelScope.launch {
             try {
-                val service = RetrofitFactory().getCNHService()
+                val service = RetrofitFactory().getDocumentoService()
 
-                val body = CNHRequest(
-                    numero_cnh = numeroCNH,
-                    categoria = categoria,
-                    validade = validade,
-                    possui_ear = possuiEAR
+                val body = DocumentoRequest(
+                    tipo_documento = tipoDocumento,
+                    valor = valor,
+                    data_validade = dataValidade,
+                    arquivo_url = arquivoUrl
                 )
 
-                val response = service.cadastrarCNH("Bearer $token", body)
+                val response = service.cadastrarDocumento("Bearer $token", body)
 
                 _mensagem.value = "✅ ${response.message}"
-                _cnhValidada.value = true
+
+                // Adiciona o tipo de documento à lista de cadastrados
+                _documentosCadastrados.value = _documentosCadastrados.value.toMutableSet().apply {
+                    add(tipoDocumento)
+                }
+
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 _mensagem.value = "❌ Erro HTTP ${e.code()}: ${errorBody ?: e.message()}"
@@ -53,3 +58,4 @@ class CNHViewModel : ViewModel() {
         }
     }
 }
+

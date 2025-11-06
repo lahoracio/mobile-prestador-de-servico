@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
+import com.exemple.facilita.viewmodel.PerfilViewModel
 
 @Composable
 fun TelaCompletarPerfilPrestador(
@@ -34,6 +36,8 @@ fun TelaCompletarPerfilPrestador(
     onVoltar: (() -> Unit)? = null
 ) {
     var endereco by remember { mutableStateOf(TextFieldValue("")) }
+    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val documentosValidados by perfilViewModel.documentosValidados.collectAsState()
 
     // Lista de documentos e suas rotas correspondentes
     val opcoesDocs = listOf(
@@ -41,6 +45,11 @@ fun TelaCompletarPerfilPrestador(
         "Documentos" to "tela_documentos",
         "Informações do veículo" to "tela_veiculo"
     )
+
+    // Atualiza o estado quando volta de uma tela de validação
+    LaunchedEffect(navController.currentBackStackEntry) {
+        // Você pode adicionar lógica aqui se necessário
+    }
 
     Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
         Column(
@@ -117,6 +126,8 @@ fun TelaCompletarPerfilPrestador(
             // LISTA DE DOCUMENTOS
             Column(modifier = Modifier.fillMaxWidth()) {
                 opcoesDocs.forEach { (titulo, rota) ->
+                    val isValidado = documentosValidados.contains(titulo)
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -130,10 +141,27 @@ fun TelaCompletarPerfilPrestador(
                                 modifier = Modifier
                                     .size(18.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFD9D9D9))
-                            )
+                                    .background(
+                                        if (isValidado) Color(0xFF00B94A)
+                                        else Color(0xFFD9D9D9)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isValidado) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Validado",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(titulo, fontSize = 15.sp)
+                            Text(
+                                text = titulo,
+                                fontSize = 15.sp,
+                                color = if (isValidado) Color(0xFF00B94A) else Color.Black
+                            )
                         }
                         Icon(
                             imageVector = Icons.Default.ArrowForwardIos,

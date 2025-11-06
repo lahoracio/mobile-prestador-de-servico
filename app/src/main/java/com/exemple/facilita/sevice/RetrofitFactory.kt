@@ -21,5 +21,9 @@ class RetrofitFactory {
     fun getServicoService(): ServicoService = retrofit.create(ServicoService::class.java)
 
     fun getCNHService(): CNHService = retrofit.create(CNHService::class.java)
+
+    fun getDocumentoService(): DocumentoService = retrofit.create(DocumentoService::class.java)
+
+    fun getModalidadeService(): ModalidadeService = retrofit.create(ModalidadeService::class.java)
 }
 

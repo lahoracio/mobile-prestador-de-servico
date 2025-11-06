@@ -27,13 +27,25 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
 import com.exemple.facilita.viewmodel.CNHViewModel
+import com.exemple.facilita.viewmodel.PerfilViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaCNH(navController: NavController) {
 
     val viewModel: CNHViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
+    val cnhValidada by viewModel.cnhValidada.collectAsState()
+
+    // Observa quando CNH é validada com sucesso e volta para a tela anterior
+    LaunchedEffect(cnhValidada) {
+        if (cnhValidada) {
+            perfilViewModel.marcarComoValidado("CNH com EAR")
+            kotlinx.coroutines.delay(1500) // Aguarda 1.5s para mostrar a mensagem
+            navController.popBackStack()
+        }
+    }
 
     var categoriaExpanded by remember { mutableStateOf(false) }
     val categorias = listOf("A", "B", "AB", "C", "D", "E")
@@ -41,6 +53,8 @@ fun TelaCNH(navController: NavController) {
 
     var numeroCNH by remember { mutableStateOf("") }
     var validade by remember { mutableStateOf("") }
+    var earExpanded by remember { mutableStateOf(false) }
+    val opcoesEAR = listOf("Sim", "Não")
     var possuiEAR by remember { mutableStateOf("") }
     var pontuacao by remember { mutableStateOf("") }
 
@@ -112,6 +126,7 @@ fun TelaCNH(navController: NavController) {
                 value = numeroCNH,
                 onValueChange = { numeroCNH = it },
                 label = { Text("Número da CNH") },
+                placeholder = { Text("Ex: 12345678901 (11 dígitos)") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -164,15 +179,37 @@ fun TelaCNH(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // EAR (Exerce Atividade Remunerada)
-            OutlinedTextField(
-                value = possuiEAR,
-                onValueChange = { possuiEAR = it },
-                label = { Text("Possui EAR (Exerce Atividade Remunerada)?") },
-                placeholder = { Text("Sim ou Não") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
+            // EAR (Exerce Atividade Remunerada) - Dropdown
+            ExposedDropdownMenuBox(
+                expanded = earExpanded,
+                onExpandedChange = { earExpanded = !earExpanded }
+            ) {
+                OutlinedTextField(
+                    value = possuiEAR,
+                    onValueChange = { possuiEAR = it },
+                    label = { Text("Possui EAR (Exerce Atividade Remunerada)?") },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = earExpanded) },
+                    readOnly = true
+                )
+                ExposedDropdownMenu(
+                    expanded = earExpanded,
+                    onDismissRequest = { earExpanded = false }
+                ) {
+                    opcoesEAR.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                possuiEAR = option
+                                earExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -208,14 +245,36 @@ fun TelaCNH(navController: NavController) {
                         shape = RoundedCornerShape(50)
                     )
                     .clickable {
-                        val token =
-                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OTYsInRpcG9fY29udGEiOm51bGwsImVtYWlsIjoicm9iZXJ0b29AZ21haWwuY29tIiwiaWF0IjoxNzYyMjY0ODM5LCJleHAiOjE3NjIyOTM2MzksImlzcyI6ImZhY2lsaXRhLWFwaSIsInN1YiI6Ijk2In0.wFrScyNh8vdbZbUVku197kWa1niGZnf221YxH9E8ZLs" // substitua pelo token real
+                        // Validação básica
+                        if (numeroCNH.isBlank() || categoria.isBlank() || validade.isBlank() || possuiEAR.isBlank()) {
+                            viewModel.setMensagem("❌ Por favor, preencha todos os campos obrigatórios")
+                            return@clickable
+                        }
+
+                        // Validação do formato da data (YYYY-MM-DD)
+                        val dateRegex = Regex("""^\d{4}-\d{2}-\d{2}$""")
+                        if (!validade.matches(dateRegex)) {
+                            viewModel.setMensagem("❌ Formato de data inválido. Use: AAAA-MM-DD (Ex: 2030-05-12)")
+                            return@clickable
+                        }
+
+                        // Validação do número da CNH (deve ter 11 dígitos)
+                        if (numeroCNH.length != 11 || !numeroCNH.all { it.isDigit() }) {
+                            viewModel.setMensagem("❌ Número da CNH deve conter exatamente 11 dígitos")
+                            return@clickable
+                        }
+
+                        val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODYsInRpcG9fY29udGEiOiJQUkVTVEFET1IiLCJlbWFpbCI6Imdpb3Zhbm5hQGdtYWlsLmNvbSIsImlhdCI6MTc2MjQzMzU5NiwiZXhwIjoxNzYyNDYyMzk2fQ.5_XHwGBFhYTSFGbsQBILho56o2mm1FnzDUMZhN7RkoY"
+
+                        // Converte "Sim"/"Não" para Boolean
+                        val possuiEARBoolean = possuiEAR.equals("Sim", ignoreCase = true)
+
                         viewModel.validarCNH(
                             token = token,
                             numeroCNH = numeroCNH,
                             categoria = categoria,
                             validade = validade,
-                            possuiEAR = possuiEAR
+                            possuiEAR = possuiEARBoolean
                         )
                     },
                 contentAlignment = Alignment.Center
