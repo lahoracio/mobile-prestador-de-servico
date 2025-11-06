@@ -23,27 +23,48 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
 import com.exemple.facilita.viewmodel.DocumentoViewModel
 import com.exemple.facilita.viewmodel.PerfilViewModel
+import com.exemple.facilita.utils.TokenManager
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelaDocumentos(navController: NavController) {
+fun TelaDocumentos(
+    navController: NavController,
+    perfilViewModel: PerfilViewModel = viewModel()
+) {
 
-    val viewModel: DocumentoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val viewModel: DocumentoViewModel = viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
     val documentosCadastrados by viewModel.documentosCadastrados.collectAsState()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Observa quando ambos documentos são cadastrados e volta para a tela anterior
     LaunchedEffect(documentosCadastrados) {
         if (documentosCadastrados.contains("RG") && documentosCadastrados.contains("CPF")) {
             perfilViewModel.marcarComoValidado("Documentos")
             kotlinx.coroutines.delay(1500) // Aguarda 1.5s para mostrar a mensagem
-            navController.popBackStack()
+            navController.navigate("tela_completar_perfil_prestador") {
+                popUpTo("tela_documentos") { inclusive = true }
+            }
+        }
+    }
+
+    // Mostra mensagens no Snackbar
+    LaunchedEffect(mensagem) {
+        mensagem?.let { msg ->
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = msg,
+                    duration = SnackbarDuration.Short
+                )
+            }
         }
     }
 
@@ -52,7 +73,23 @@ fun TelaDocumentos(navController: NavController) {
     var dataValidadeRG by remember { mutableStateOf("") }
     var dataValidadeCPF by remember { mutableStateOf("") }
 
-    Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
+    Scaffold(
+        containerColor = Color(0xFFE6E6E6),
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = if (snackbarData.visuals.message.contains("sucesso"))
+                            Color(0xFF00B94A) else Color(0xFFD32F2F),
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -115,26 +152,6 @@ fun TelaDocumentos(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Mensagem de feedback
-            mensagem?.let {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (it.startsWith("✅")) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                    )
-                ) {
-                    Text(
-                        text = it,
-                        modifier = Modifier.padding(12.dp),
-                        color = if (it.startsWith("✅")) Color(0xFF2E7D32) else Color(0xFFC62828),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             // ===== SEÇÃO RG =====
             Text(
@@ -226,25 +243,25 @@ fun TelaDocumentos(navController: NavController) {
                     .clickable {
                         // Validação básica
                         if (rg.isBlank() || cpf.isBlank() || dataValidadeRG.isBlank() || dataValidadeCPF.isBlank()) {
-                            viewModel.setMensagem("❌ Por favor, preencha todos os campos")
+                            viewModel.setMensagem("Por favor, preencha todos os campos")
                             return@clickable
                         }
 
                         // Validação do formato da data (YYYY-MM-DD)
                         val dateRegex = Regex("""^\d{4}-\d{2}-\d{2}${'$'}""")
                         if (!dataValidadeRG.matches(dateRegex) || !dataValidadeCPF.matches(dateRegex)) {
-                            viewModel.setMensagem("❌ Formato de data inválido. Use: AAAA-MM-DD (Ex: 2030-12-31)")
+                            viewModel.setMensagem("Formato de data inválido. Use: AAAA-MM-DD (Ex: 2030-12-31)")
                             return@clickable
                         }
 
                         // Validação do CPF (11 dígitos)
                         val cpfLimpo = cpf.replace(Regex("[^0-9]"), "")
                         if (cpfLimpo.length != 11) {
-                            viewModel.setMensagem("❌ CPF deve conter 11 dígitos")
+                            viewModel.setMensagem("CPF deve conter 11 dígitos")
                             return@clickable
                         }
 
-                        val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODYsInRpcG9fY29udGEiOiJQUkVTVEFET1IiLCJlbWFpbCI6Imdpb3Zhbm5hQGdtYWlsLmNvbSIsImlhdCI6MTc2MjQzMzU5NiwiZXhwIjoxNzYyNDYyMzk2fQ.5_XHwGBFhYTSFGbsQBILho56o2mm1FnzDUMZhN7RkoY"
+                        val token = TokenManager.getToken()
 
                         // Cadastrar RG
                         viewModel.cadastrarDocumento(

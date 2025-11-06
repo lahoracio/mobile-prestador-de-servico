@@ -32,18 +32,18 @@ import com.exemple.facilita.viewmodel.PerfilViewModel
 @Composable
 fun TelaCompletarPerfilPrestador(
     navController: NavController,
+    perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onFinalizar: () -> Unit = {},
     onVoltar: (() -> Unit)? = null
 ) {
     var endereco by remember { mutableStateOf(TextFieldValue("")) }
-    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val documentosValidados by perfilViewModel.documentosValidados.collectAsState()
 
     // Lista de documentos e suas rotas correspondentes
     val opcoesDocs = listOf(
         "CNH com EAR" to "tela_cnh",
         "Documentos" to "tela_documentos",
-        "Informações do veículo" to "tela_veiculo"
+        "Informações do veículo" to "tela_tipo_veiculo"
     )
 
     // Atualiza o estado quando volta de uma tela de validação

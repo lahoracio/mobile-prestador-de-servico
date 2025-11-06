@@ -28,22 +28,47 @@ import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
 import com.exemple.facilita.viewmodel.CNHViewModel
 import com.exemple.facilita.viewmodel.PerfilViewModel
+import com.exemple.facilita.utils.TokenManager
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelaCNH(navController: NavController) {
+fun TelaCNH(
+    navController: NavController,
+    perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
 
     val viewModel: CNHViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
     val cnhValidada by viewModel.cnhValidada.collectAsState()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Observa quando CNH é validada com sucesso e volta para a tela anterior
     LaunchedEffect(cnhValidada) {
         if (cnhValidada) {
             perfilViewModel.marcarComoValidado("CNH com EAR")
             kotlinx.coroutines.delay(1500) // Aguarda 1.5s para mostrar a mensagem
-            navController.popBackStack()
+            navController.navigate("tela_completar_perfil_prestador") {
+                popUpTo("tela_cnh") { inclusive = true }
+            }
+            // Reseta o estado
+            viewModel.resetCnhValidada()
+            viewModel.setMensagem("")
+        }
+    }
+
+    // Mostra mensagens no Snackbar
+    LaunchedEffect(mensagem) {
+        mensagem?.let { msg ->
+            if (msg.isNotEmpty()) {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = msg,
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
         }
     }
 
@@ -58,7 +83,23 @@ fun TelaCNH(navController: NavController) {
     var possuiEAR by remember { mutableStateOf("") }
     var pontuacao by remember { mutableStateOf("") }
 
-    Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
+    Scaffold(
+        containerColor = Color(0xFFE6E6E6),
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = if (snackbarData.visuals.message.contains("sucesso"))
+                            Color(0xFF00B94A) else Color(0xFFD32F2F),
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -247,24 +288,24 @@ fun TelaCNH(navController: NavController) {
                     .clickable {
                         // Validação básica
                         if (numeroCNH.isBlank() || categoria.isBlank() || validade.isBlank() || possuiEAR.isBlank()) {
-                            viewModel.setMensagem("❌ Por favor, preencha todos os campos obrigatórios")
+                            viewModel.setMensagem("Por favor, preencha todos os campos obrigatórios")
                             return@clickable
                         }
 
                         // Validação do formato da data (YYYY-MM-DD)
                         val dateRegex = Regex("""^\d{4}-\d{2}-\d{2}$""")
                         if (!validade.matches(dateRegex)) {
-                            viewModel.setMensagem("❌ Formato de data inválido. Use: AAAA-MM-DD (Ex: 2030-05-12)")
+                            viewModel.setMensagem("Formato de data inválido. Use: AAAA-MM-DD (Ex: 2030-05-12)")
                             return@clickable
                         }
 
                         // Validação do número da CNH (deve ter 11 dígitos)
                         if (numeroCNH.length != 11 || !numeroCNH.all { it.isDigit() }) {
-                            viewModel.setMensagem("❌ Número da CNH deve conter exatamente 11 dígitos")
+                            viewModel.setMensagem("Número da CNH deve conter exatamente 11 dígitos")
                             return@clickable
                         }
 
-                        val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODYsInRpcG9fY29udGEiOiJQUkVTVEFET1IiLCJlbWFpbCI6Imdpb3Zhbm5hQGdtYWlsLmNvbSIsImlhdCI6MTc2MjQzMzU5NiwiZXhwIjoxNzYyNDYyMzk2fQ.5_XHwGBFhYTSFGbsQBILho56o2mm1FnzDUMZhN7RkoY"
+                        val token = TokenManager.getToken()
 
                         // Converte "Sim"/"Não" para Boolean
                         val possuiEARBoolean = possuiEAR.equals("Sim", ignoreCase = true)
@@ -287,16 +328,6 @@ fun TelaCNH(navController: NavController) {
                 )
             }
 
-            // ✅ Mensagem de retorno da API
-            mensagem?.let {
-                Text(
-                    text = it,
-                    color = if (it.startsWith("✅")) Color(0xFF00B94A) else Color.Red,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

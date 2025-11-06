@@ -4,11 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.screens.*
+import com.exemple.facilita.viewmodel.PerfilViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,6 +24,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavHost(navController: NavHostController) {
+    // ViewModel compartilhado entre todas as telas
+    val perfilViewModel: PerfilViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = "tela_completar_perfil_prestador"
@@ -33,6 +38,7 @@ fun AppNavHost(navController: NavHostController) {
         composable("tela_inicio_prestador") {
             TelaInicioPrestador()
         }
+
         composable("tela_tipo_veiculo") {
             TelaTipoVeiculo(navController)
         }
@@ -46,15 +52,20 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable("tela_completar_perfil_prestador") {
-            TelaCompletarPerfilPrestador(navController)
+            TelaCompletarPerfilPrestador(navController, perfilViewModel)
         }
 
         composable("tela_cnh") {
-            TelaCNH(navController)
+            TelaCNH(navController, perfilViewModel)
         }
 
-        composable("tela_veiculo") {
-            TelaInformacoesVeiculo(navController)
+        composable("tela_documentos") {
+            TelaDocumentos(navController, perfilViewModel)
+        }
+
+        composable("tela_veiculo/{tiposVeiculo}") { backStackEntry ->
+            val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
+            TelaInformacoesVeiculo(navController, tiposVeiculo, perfilViewModel)
         }
 
     }

@@ -40,7 +40,7 @@ class DocumentoViewModel : ViewModel() {
 
                 val response = service.cadastrarDocumento("Bearer $token", body)
 
-                _mensagem.value = "✅ ${response.message}"
+                _mensagem.value = "Documento ${tipoDocumento} cadastrado com sucesso!"
 
                 // Adiciona o tipo de documento à lista de cadastrados
                 _documentosCadastrados.value = _documentosCadastrados.value.toMutableSet().apply {
@@ -49,11 +49,11 @@ class DocumentoViewModel : ViewModel() {
 
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
-                _mensagem.value = "❌ Erro HTTP ${e.code()}: ${errorBody ?: e.message()}"
+                _mensagem.value = "Erro ao cadastrar ${tipoDocumento}: ${errorBody ?: e.message()}"
             } catch (e: java.io.IOException) {
-                _mensagem.value = "❌ Erro de conexão: Verifique sua internet"
+                _mensagem.value = "Erro de conexão. Verifique sua internet."
             } catch (e: Exception) {
-                _mensagem.value = "❌ Erro: ${e.message}"
+                _mensagem.value = "Erro inesperado: ${e.message}"
             }
         }
     }

@@ -20,6 +20,10 @@ class CNHViewModel : ViewModel() {
         _mensagem.value = msg
     }
 
+    fun resetCnhValidada() {
+        _cnhValidada.value = false
+    }
+
     fun validarCNH(
         token: String,
         numeroCNH: String,
@@ -40,15 +44,18 @@ class CNHViewModel : ViewModel() {
 
                 val response = service.cadastrarCNH("Bearer $token", body)
 
-                _mensagem.value = "✅ ${response.message}"
+                _mensagem.value = "CNH cadastrada com sucesso!"
                 _cnhValidada.value = true
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
-                _mensagem.value = "❌ Erro HTTP ${e.code()}: ${errorBody ?: e.message()}"
+                _mensagem.value = "Erro ao cadastrar CNH: ${errorBody ?: e.message()}"
+                _cnhValidada.value = false
             } catch (e: java.io.IOException) {
-                _mensagem.value = "❌ Erro de conexão: Verifique sua internet"
+                _mensagem.value = "Erro de conexão. Verifique sua internet."
+                _cnhValidada.value = false
             } catch (e: Exception) {
-                _mensagem.value = "❌ Erro: ${e.message}"
+                _mensagem.value = "Erro inesperado: ${e.message}"
+                _cnhValidada.value = false
             }
         }
     }
