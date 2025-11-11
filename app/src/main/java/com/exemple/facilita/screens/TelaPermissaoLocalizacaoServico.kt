@@ -35,16 +35,15 @@ import com.google.android.gms.location.*
 @Composable
 fun TelaPermissaoLocalizacaoServico(navController: NavController) {
     val context = LocalContext.current
-
     val locationSettingsClient = remember { LocationServices.getSettingsClient(context) }
 
-    // Launcher para abrir prompt de ativar GPS (declarado primeiro)
+    // Launcher para abrir prompt de ativar GPS
     val locationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            // Usuário ativou o GPS → navega para completar perfil
-            navController.navigate("tela_completar_perfil_prestador")
+            // GPS ativado, navegar para próxima tela
+            navController.navigate("tela_tipo_veiculo")
         } else {
             Toast.makeText(context, "GPS não ativado", Toast.LENGTH_SHORT).show()
         }
@@ -58,11 +57,11 @@ fun TelaPermissaoLocalizacaoServico(navController: NavController) {
         val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
 
         if (fineLocationGranted && coarseLocationGranted) {
-            // Após aceitar permissões, ativa o GPS
+            // Após aceitar permissões, ativar GPS e navegar
             ativarGPS(
                 context = context,
                 locationSettingsClient = locationSettingsClient,
-                onGPSAtivado = { navController.navigate("tela_completar_perfil_prestador") },
+                onGPSAtivado = { navController.navigate("tela_tipo_veiculo") },
                 launcher = locationLauncher
             )
         } else {
@@ -173,7 +172,7 @@ fun TelaPermissaoLocalizacaoServico(navController: NavController) {
     }
 }
 
-// Função para ativar GPS corretamente
+// Função para ativar GPS
 private fun ativarGPS(
     context: Context,
     locationSettingsClient: SettingsClient,
@@ -188,7 +187,7 @@ private fun ativarGPS(
     val task = locationSettingsClient.checkLocationSettings(builder.build())
 
     task.addOnSuccessListener {
-        // GPS já ativado → só segue
+        // GPS já ativado → navegar
         onGPSAtivado()
     }
 
@@ -202,6 +201,7 @@ private fun ativarGPS(
         }
     }
 }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

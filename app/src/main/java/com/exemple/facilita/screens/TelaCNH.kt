@@ -308,11 +308,14 @@ fun TelaCNH(
                             return@clickable
                         }
 
-                        // Obter token do TokenManager usando o context
-                        val token = TokenManager.obterTokenComBearer(context)
+                        // Obter token do TokenManager usando o context (sem o Bearer, pois o ViewModel adiciona)
+                        val token = TokenManager.obterToken(context)
+
+                        android.util.Log.d("TELA_CNH", "Token obtido: ${if (token != null) token.take(20) + "..." else "NULL"}")
 
                         if (token.isNullOrBlank()) {
                             viewModel.setMensagem("Token inválido. Faça login novamente.")
+                            android.util.Log.e("TELA_CNH", "Token está nulo ou vazio!")
                             return@clickable
                         }
 

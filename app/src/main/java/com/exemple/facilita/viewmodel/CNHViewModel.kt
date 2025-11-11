@@ -33,6 +33,9 @@ class CNHViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("CNH_DEBUG", "Iniciando cadastro de CNH")
+                android.util.Log.d("CNH_DEBUG", "Token recebido (primeiros 20 chars): ${token.take(20)}...")
+
                 val service = RetrofitFactory.getCNHService()
 
                 val body = CNHRequest(
@@ -42,26 +45,33 @@ class CNHViewModel : ViewModel() {
                     possui_ear = possuiEAR
                 )
 
+                android.util.Log.d("CNH_DEBUG", "Enviando request: $body")
+                android.util.Log.d("CNH_DEBUG", "Header Authorization: Bearer ${token.take(20)}...")
+
                 val response = service.cadastrarCNH("Bearer $token", body)
 
+                android.util.Log.d("CNH_DEBUG", "Resposta recebida: $response")
                 _mensagem.value = "CNH cadastrada com sucesso!"
                 _cnhValidada.value = true
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
+                android.util.Log.e("CNH_ERROR", "Erro HTTP ${e.code()}: $errorBody")
 
                 // Tratamento específico para erro 401 (token inválido/expirado)
                 when (e.code()) {
                     401 -> _mensagem.value = "Token expirado ou inválido. Faça login novamente."
                     400 -> _mensagem.value = "Dados inválidos. Verifique as informações da CNH."
-                    404 -> _mensagem.value = "Serviço não encontrado. Contate o suporte."
+                    404 -> _mensagem.value = "Prestador não encontrado. Certifique-se de ter escolhido 'Prestador de Serviço' no tipo de conta."
                     500 -> _mensagem.value = "Erro no servidor. Tente novamente mais tarde."
                     else -> _mensagem.value = "Erro ao cadastrar CNH: ${errorBody ?: e.message()}"
                 }
                 _cnhValidada.value = false
             } catch (e: java.io.IOException) {
+                android.util.Log.e("CNH_ERROR", "Erro de conexão: ${e.message}")
                 _mensagem.value = "Erro de conexão. Verifique sua internet."
                 _cnhValidada.value = false
             } catch (e: Exception) {
+                android.util.Log.e("CNH_ERROR", "Erro inesperado: ${e.message}", e)
                 _mensagem.value = "Erro inesperado: ${e.message}"
                 _cnhValidada.value = false
             }

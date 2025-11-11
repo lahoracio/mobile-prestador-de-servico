@@ -33,6 +33,11 @@ interface UserService {
     @POST("v1/facilita/usuario/verificar-codigo")
     fun verificarCodigo(@Body request: VerificarCodigoRequest): Call<VerificarSenhaResponse>
 
-
+    @Headers("Content-Type: application/json")
+    @POST("v1/facilita/prestador")
+    suspend fun criarPrestador(
+        @Header("Authorization") token: String,
+        @Body request: CriarPrestadorRequest
+    ): Response<CriarPrestadorResponse>
 
 }

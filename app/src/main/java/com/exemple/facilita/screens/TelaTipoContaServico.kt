@@ -29,6 +29,10 @@ fun TelaTipoContaServico(navController: NavController) {
     var selectedOption by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
+    // NOTA: Esta tela não é mais usada no fluxo principal.
+    // Mantida apenas para compatibilidade.
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()

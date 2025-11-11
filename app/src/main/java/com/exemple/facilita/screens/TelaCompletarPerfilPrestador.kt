@@ -47,8 +47,34 @@ fun TelaCompletarPerfilPrestador(
     onVoltar: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
     var endereco by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf<Double?>(null) }
+    var longitude by remember { mutableStateOf<Double?>(null) }
+
     val documentosValidados by perfilViewModel.documentosValidados.collectAsState()
+    val mensagem by prestadorViewModel.mensagem.collectAsState()
+    val sucesso by prestadorViewModel.sucesso.collectAsState()
+    val novoToken by prestadorViewModel.novoToken.collectAsState()
+    val isLoading by prestadorViewModel.isLoading.collectAsState()
+
+    // Observar sucesso para salvar token
+    LaunchedEffect(sucesso, novoToken) {
+        if (sucesso && !novoToken.isNullOrBlank()) {
+            com.exemple.facilita.utils.TokenManager.salvarToken(context, novoToken!!, "PRESTADOR")
+            android.util.Log.d("COMPLETAR_PERFIL", "Novo token salvo! Prestador criado no backend.")
+            android.widget.Toast.makeText(context, "Prestador criado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
+            prestadorViewModel.resetState()
+        }
+    }
+
+    // Mostrar mensagens
+    LaunchedEffect(mensagem) {
+        mensagem?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Inicializar Google Places API
     LaunchedEffect(Unit) {
@@ -65,6 +91,22 @@ fun TelaCompletarPerfilPrestador(
             result.data?.let { data ->
                 val place = Autocomplete.getPlaceFromIntent(data)
                 endereco = place.address ?: ""
+                // Capturar latitude e longitude
+                place.latLng?.let { latLng ->
+                    latitude = latLng.latitude
+                    longitude = latLng.longitude
+                    android.util.Log.d("COMPLETAR_PERFIL", "Localização capturada: [${latLng.latitude}, ${latLng.longitude}]")
+
+                    // CRIAR PRESTADOR IMEDIATAMENTE após selecionar endereço
+                    val token = com.exemple.facilita.utils.TokenManager.obterToken(context)
+                    if (!token.isNullOrBlank()) {
+                        android.util.Log.d("COMPLETAR_PERFIL", "Chamando API para criar prestador")
+                        android.util.Log.d("COMPLETAR_PERFIL", "Endereço: $endereco")
+                        prestadorViewModel.criarPrestador(token, latLng.latitude, latLng.longitude)
+                    } else {
+                        android.widget.Toast.makeText(context, "Token não encontrado. Faça login novamente", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
@@ -203,6 +245,30 @@ fun TelaCompletarPerfilPrestador(
                 }
             }
 
+            // Indicador de loading quando criando prestador
+            if (isLoading && endereco.isNotBlank()) {
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF019D31),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Criando prestador no sistema...",
+                            fontSize = 14.sp,
+                            color = Color(0xFF019D31),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
@@ -286,7 +352,29 @@ fun TelaCompletarPerfilPrestador(
                             .width(220.dp)
                             .height(48.dp)
                             .clickable {
-                                // Navegar para a tela inicial do prestador
+                                // Validar se endereço foi preenchido (prestador criado)
+                                if (endereco.isBlank()) {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Por favor, selecione um endereço primeiro",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@clickable
+                                }
+
+                                // Verificar se prestador foi criado (token atualizado)
+                                val tipoConta = com.exemple.facilita.utils.TokenManager.obterTipoConta(context)
+                                if (tipoConta != "PRESTADOR") {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Aguarde a criação do prestador...",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@clickable
+                                }
+
+                                // Navegar para tela inicial
+                                android.util.Log.d("COMPLETAR_PERFIL", "Finalizando cadastro, navegando para tela inicial")
                                 navController.navigate("tela_inicio_prestador") {
                                     popUpTo(0) { inclusive = true }
                                 }

@@ -315,10 +315,10 @@ fun TelaCadastro(navController: NavController) {
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
-                                                    if (body.proximo_passo == "escolher_tipo_conta") {
-                                                        navController.navigate("tela_tipo_conta")
-                                                    } else {
-                                                        navController.navigate("tela_inicio_prestador")
+                                                    // Após cadastro, vai direto para permissão de localização
+                                                    // onde será criado o prestador na API
+                                                    navController.navigate("tela_permissao_localizacao_servico") {
+                                                        popUpTo("tela_cadastro") { inclusive = true }
                                                     }
                                                 }
                                             }
