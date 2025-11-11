@@ -9,18 +9,18 @@ data class Servico(
     val status: String,
     val data_solicitacao: String,
     val valor: String,
-    val contratante: Contratante,
+    val contratante: ServicoContratante,
     val categoria: Categoria,
     val localizacao: Localizacao?
 )
 
-data class Contratante(
+data class ServicoContratante(
     val id: Int,
     val necessidade: String,
-    val usuario: Usuario
+    val usuario: ServicoUsuario
 )
 
-data class Usuario(
+data class ServicoUsuario(
     val id: Int,
     val nome: String,
     val foto_perfil: String?,

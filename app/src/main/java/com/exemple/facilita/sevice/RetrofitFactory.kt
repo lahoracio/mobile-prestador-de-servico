@@ -1,11 +1,13 @@
 package com.exemple.facilita.service
 
+import com.exemple.facilita.sevice.UserService
+import com.google.firebase.appdistribution.gradle.ApiService
 import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 
-class RetrofitFactory {
+object RetrofitFactory {
 
    private val gson = GsonBuilder()
         .serializeNulls()
@@ -17,6 +19,14 @@ class RetrofitFactory {
       .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
+    val apiService: ApiService by lazy {
+        retrofit.create(ApiService::class.java)
+    }
+
+    // Mantém o UserService existente para não quebrar outras partes do app
+    val userService: UserService by lazy {
+        retrofit.create(UserService::class.java)
+    }
     //fun getUserService(): UserService = retrofitUser.create(UserService::class.java)
     fun getServicoService(): ServicoService = retrofit.create(ServicoService::class.java)
 

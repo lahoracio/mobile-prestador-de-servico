@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +39,7 @@ fun TelaDocumentos(
     navController: NavController,
     perfilViewModel: PerfilViewModel = viewModel()
 ) {
+    val context = LocalContext.current
 
     val viewModel: DocumentoViewModel = viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
@@ -261,7 +263,13 @@ fun TelaDocumentos(
                             return@clickable
                         }
 
-                        val token = TokenManager.getToken()
+                        // Obter token do TokenManager usando o context
+                        val token = TokenManager.obterTokenComBearer(context)
+
+                        if (token.isNullOrBlank()) {
+                            viewModel.setMensagem("Token inválido. Faça login novamente.")
+                            return@clickable
+                        }
 
                         // Cadastrar RG
                         viewModel.cadastrarDocumento(

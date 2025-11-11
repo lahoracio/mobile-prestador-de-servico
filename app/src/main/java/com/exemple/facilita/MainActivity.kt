@@ -29,12 +29,33 @@ fun AppNavHost(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = "tela_inicio_prestador"
+        startDestination = "tela_login"
     ) {
 
-        // Telas já existentes
 
-        // 🟢 Nova rota para a tela inicial do prestador
+        composable("tela_login") {
+            TelaLogin(navController)
+        }
+        composable("tela_cadastro") {
+            TelaCadastro(navController)
+        }
+
+        composable("tela_recuperar_senha") {
+            TelaRecuperarSenha(navController)
+        }
+
+        composable("tela_verificar_codigo/{emailOuTelefone}/{tipo}") { backStackEntry ->
+            val emailOuTelefone = backStackEntry.arguments?.getString("emailOuTelefone") ?: ""
+            val tipo = backStackEntry.arguments?.getString("tipo") ?: "email"
+            TelaVerificarCodigo(navController, emailOuTelefone, tipo)
+        }
+
+        composable("tela_redefinir_senha/{usuarioId}") { backStackEntry ->
+            val usuarioId = backStackEntry.arguments?.getString("usuarioId") ?: ""
+            TelaRedefinirSenha(navController, usuarioId)
+        }
+
+        //  Nova rota para a tela inicial do prestador
         composable("tela_inicio_prestador") {
             TelaInicioPrestador()
         }
@@ -44,6 +65,11 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable("tela_tipo_conta_servico") {
+            TelaTipoContaServico(navController)
+        }
+
+        // Rota alternativa para compatibilidade
+        composable("tela_tipo_conta") {
             TelaTipoContaServico(navController)
         }
 

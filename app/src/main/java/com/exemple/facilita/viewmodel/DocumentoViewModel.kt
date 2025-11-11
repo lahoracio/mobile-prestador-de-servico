@@ -29,7 +29,7 @@ class DocumentoViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val service = RetrofitFactory().getDocumentoService()
+                val service = RetrofitFactory.getDocumentoService()
 
                 val body = DocumentoRequest(
                     tipo_documento = tipoDocumento,

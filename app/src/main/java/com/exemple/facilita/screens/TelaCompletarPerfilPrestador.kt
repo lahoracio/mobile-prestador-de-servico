@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -52,82 +53,106 @@ fun TelaCompletarPerfilPrestador(
     }
 
     Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Espaço no topo
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // FOTO DE PERFIL
-            Box(modifier = Modifier.size(130.dp), contentAlignment = Alignment.Center) {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE6E6E6)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.icontiposervico),
-                        contentDescription = "Foto de perfil",
+            item {
+                Box(modifier = Modifier.size(130.dp), contentAlignment = Alignment.Center) {
+                    Box(
                         modifier = Modifier
                             .size(120.dp)
                             .clip(CircleShape)
+                            .background(Color(0xFFE6E6E6)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.icontiposervico),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Adicionar foto",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .absoluteOffset(x = -8.dp, y = -3.dp)
+                            .size(28.dp)
+                            .background(Color(0xFF019D31), CircleShape)
+                            .padding(5.dp)
                     )
                 }
+            }
 
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Adicionar foto",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .absoluteOffset(x = -8.dp, y = -3.dp)
-                        .size(28.dp)
-                        .background(Color(0xFF019D31), CircleShape)
-                        .padding(5.dp)
+            // Textos de boas-vindas
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Bem vindo entregador",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    textAlign = TextAlign.Center
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Bem vindo entregador",
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Complete seu perfil",
-                fontSize = 16.sp,
-                color = Color.DarkGray,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Complete seu perfil",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             // CAMPO ENDEREÇO
-            OutlinedTextField(
-                value = endereco,
-                onValueChange = { endereco = it },
-                label = { Text("Endereço completo") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
+            item {
+                OutlinedTextField(
+                    value = endereco,
+                    onValueChange = { endereco = it },
+                    label = { Text("Endereço completo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Cadastre alguns documentos para a validação do seu serviço",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Cadastre alguns documentos para a validação do seu serviço",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // LISTA DE DOCUMENTOS
-            Column(modifier = Modifier.fillMaxWidth()) {
-                opcoesDocs.forEach { (titulo, rota) ->
-                    val isValidado = documentosValidados.contains(titulo)
+            items(opcoesDocs.size) { index ->
+                val (titulo, rota) = opcoesDocs[index]
+                val isValidado = documentosValidados.contains(titulo)
 
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -174,25 +199,50 @@ fun TelaCompletarPerfilPrestador(
                 }
             }
 
-            Spacer(modifier = Modifier.height(140.dp))
-            Box(
-                modifier = Modifier
-                    .width(220.dp)
-                    .height(48.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))
-                        ),
-                        shape = RoundedCornerShape(50)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Finalizar",
-                    color = Color.White,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Medium
-                )
+            // Espaço antes do botão
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+
+            // Botão Finalizar
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(220.dp)
+                            .height(48.dp)
+                            .clickable {
+                                // Navegar para a tela inicial do prestador
+                                navController.navigate("tela_inicio_prestador") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))
+                                ),
+                                shape = RoundedCornerShape(50)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Finalizar",
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // Espaço no final
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

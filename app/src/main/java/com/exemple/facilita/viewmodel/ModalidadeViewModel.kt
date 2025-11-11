@@ -31,7 +31,7 @@ class ModalidadeViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val service = RetrofitFactory().getModalidadeService()
+                val service = RetrofitFactory.getModalidadeService()
 
                 val body = ModalidadeRequest(
                     modalidades = modalidades

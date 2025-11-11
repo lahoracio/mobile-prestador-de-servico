@@ -1,121 +1,127 @@
 package com.exemple.facilita.utils
 
+import android.content.Context
+
 /**
- * Gerenciador de token de autenticação
- *
- * 📝 MODO DESENVOLVIMENTO:
- * Este app está em desenvolvimento modular. A tela de login está em outra aplicação
- * e será integrada depois. Por enquanto, atualize o token manualmente aqui.
- *
- * 🔧 PARA ATUALIZAR O TOKEN (quando expirar):
- *
- * 1. Faça login no outro app ou use Postman:
- *    POST https://servidor-facilita.onrender.com/v1/facilita/auth/login
- *    Body: {"email": "seu_email", "senha": "sua_senha"}
- *
- * 2. Copie o token da resposta
- *
- * 3. Cole abaixo em currentToken (substitua tudo entre as aspas)
- *
- * 4. Salve este arquivo e execute o app novamente
- *
- * ℹ️ Verificar validade em: https://jwt.io/
- *    - Procure por "exp" no payload (deve ser data futura)
- *    - "tipo_conta" deve ser "PRESTADOR"
+ * Classe utilitária para gerenciar o token JWT do usuário
+ * Centraliza o acesso ao SharedPreferences para evitar inconsistências
  */
 object TokenManager {
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 🔑 COLE SEU TOKEN AQUI (entre as aspas):
-    // ══════════════════════════════════════════════════════════════════════
-    private var currentToken: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTE4LCJ0aXBvX2NvbnRhIjpudWxsLCJlbWFpbCI6ImxhcmExQGdtYWlsLmNvbSIsImlhdCI6MTc2Mjg2NDQ3OSwiZXhwIjoxNzYyODkzMjc5LCJpc3MiOiJmYWNpbGl0YS1hcGkiLCJzdWIiOiIxMTgifQ.4hoaa4XUy203q3GGItrpfKvTHgPVkkXZS5HfL91uX7U"
-    // ══════════════════════════════════════════════════════════════════════
-    // ⚠️ Status: TOKEN EXPIRADO (válido até 06/11/2025)
-    // 🔄 Atualize acima quando vir erro "Token expirado ou inválido"
-    // ══════════════════════════════════════════════════════════════════════
+    private const val PREFS_NAME = "user_prefs"
+    private const val TOKEN_KEY = "auth_token"
+    private const val TIPO_CONTA_KEY = "tipo_conta"
+    private const val USER_ID_KEY = "user_id"
+    private const val USER_NAME_KEY = "user_name"
 
     /**
-     * Retorna o token atual
+     * Salva o token JWT e informações do usuário no SharedPreferences
      */
-    fun getToken(): String {
-        return currentToken
-    }
+    fun salvarToken(context: Context, token: String, tipoConta: String? = null, userId: Int? = null, nomeUsuario: String? = null) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putString(TOKEN_KEY, token)
+            tipoConta?.let { putString(TIPO_CONTA_KEY, it) }
+            userId?.let { putInt(USER_ID_KEY, it) }
+            nomeUsuario?.let { putString(USER_NAME_KEY, it) }
+            apply()
+        }
 
-    /**
-     * Atualiza o token (ex: após login)
-     */
-    fun setToken(token: String) {
-        currentToken = token
-    }
-
-    /**
-     * Retorna o token formatado para o header Bearer
-     */
-    fun getBearerToken(): String {
-        return "Bearer $currentToken"
-    }
-
-    /**
-     * Limpa o token (logout)
-     */
-    fun clearToken() {
-        currentToken = ""
-    }
-
-    /**
-     * Verifica se tem token válido
-     */
-    fun hasToken(): Boolean {
-        return currentToken.isNotEmpty()
-    }
-
-    /**
-     * Retorna informações sobre o token para debug
-     * Use em logs durante desenvolvimento
-     */
-    fun getTokenInfo(): String {
-        if (currentToken.isEmpty()) return "Token vazio"
-
-        return try {
-            // Decodifica o payload do JWT (parte do meio)
-            val parts = currentToken.split(".")
-            if (parts.size != 3) return "Token inválido (formato incorreto)"
-
-            val payload = parts[1]
-            val decodedBytes = android.util.Base64.decode(payload, android.util.Base64.URL_SAFE)
-            val decodedString = String(decodedBytes)
-
-            "Token Info: $decodedString"
-        } catch (e: Exception) {
-            "Erro ao decodificar token: ${e.message}"
+        // Também salva no FacilitaPrefs para compatibilidade com código legado
+        val legacyPrefs = context.getSharedPreferences("FacilitaPrefs", Context.MODE_PRIVATE)
+        legacyPrefs.edit().apply {
+            putString("token", token)
+            nomeUsuario?.let { putString("nomeUsuario", it) }
+            apply()
         }
     }
 
     /**
-     * Verifica se o token parece estar expirado (verificação local, não 100% precisa)
-     * Útil para desenvolvimento
+     * Recupera o token JWT do SharedPreferences
+     * @return Token JWT ou null se não existir
      */
-    fun isTokenLikelyExpired(): Boolean {
-        if (currentToken.isEmpty()) return true
+    fun obterToken(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        var token = prefs.getString(TOKEN_KEY, null)
 
-        return try {
-            val parts = currentToken.split(".")
-            if (parts.size != 3) return true
+        // Se não encontrar, tenta buscar no FacilitaPrefs (compatibilidade)
+        if (token == null) {
+            val legacyPrefs = context.getSharedPreferences("FacilitaPrefs", Context.MODE_PRIVATE)
+            token = legacyPrefs.getString("token", null)
 
-            val payload = parts[1]
-            val decodedBytes = android.util.Base64.decode(payload, android.util.Base64.URL_SAFE)
-            val decodedString = String(decodedBytes)
-
-            // Extrai timestamp de expiração (exp)
-            val expMatch = Regex(""""exp":(\d+)""").find(decodedString)
-            val exp = expMatch?.groupValues?.get(1)?.toLongOrNull() ?: return true
-
-            // Compara com timestamp atual
-            val now = System.currentTimeMillis() / 1000
-            exp < now
-        } catch (e: Exception) {
-            true
+            // Se encontrou no legado, migra para o novo
+            if (token != null) {
+                salvarToken(context, token)
+            }
         }
+
+        return token
+    }
+
+    /**
+     * Remove o token JWT do SharedPreferences (logout)
+     */
+    fun limparToken(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().remove(TOKEN_KEY).apply()
+
+        val legacyPrefs = context.getSharedPreferences("FacilitaPrefs", Context.MODE_PRIVATE)
+        legacyPrefs.edit().remove("token").apply()
+    }
+
+    /**
+     * Verifica se existe um token salvo
+     */
+    fun temToken(context: Context): Boolean {
+        return obterToken(context) != null
+    }
+
+    /**
+     * Retorna o token com o prefixo Bearer para uso em requisições
+     */
+    fun obterTokenComBearer(context: Context): String? {
+        val token = obterToken(context)
+        return if (token != null) "Bearer $token" else null
+    }
+
+    /**
+     * Obtém o tipo de conta do usuário
+     */
+    fun obterTipoConta(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(TIPO_CONTA_KEY, null)
+    }
+
+    /**
+     * Obtém o ID do usuário
+     */
+    fun obterUserId(context: Context): Int? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val id = prefs.getInt(USER_ID_KEY, -1)
+        return if (id != -1) id else null
+    }
+
+    /**
+     * Verifica se o usuário é CONTRATANTE
+     */
+    fun isContratante(context: Context): Boolean {
+        return obterTipoConta(context) == "CONTRATANTE"
+    }
+
+    /**
+     * Obtém o nome do usuário
+     */
+    fun obterNomeUsuario(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        var nome = prefs.getString(USER_NAME_KEY, null)
+
+        // Se não encontrar, tenta buscar no FacilitaPrefs (compatibilidade)
+        if (nome == null) {
+            val legacyPrefs = context.getSharedPreferences("FacilitaPrefs", Context.MODE_PRIVATE)
+            nome = legacyPrefs.getString("nomeUsuario", null)
+        }
+
+        return nome
     }
 }
 

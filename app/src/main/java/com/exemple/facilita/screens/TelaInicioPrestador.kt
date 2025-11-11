@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.exemple.facilita.service.ApiResponse
 import com.exemple.facilita.service.RetrofitFactory
+import com.exemple.facilita.utils.TokenManager
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -44,11 +45,12 @@ fun TelaInicioPrestador() {
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // 🔑 Token JWT (use o token real depois do login)
-    val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTE4LCJ0aXBvX2NvbnRhIjpudWxsLCJlbWFpbCI6ImxhcmExQGdtYWlsLmNvbSIsImlhdCI6MTc2Mjg2NDQ3OSwiZXhwIjoxNzYyODkzMjc5LCJpc3MiOiJmYWNpbGl0YS1hcGkiLCJzdWIiOiIxMTgifQ.4hoaa4XUy203q3GGItrpfKvTHgPVkkXZS5HfL91uX7U"
+    // 🔑 Token JWT recuperado do TokenManager após o login
+    val token = TokenManager.obterTokenComBearer(context) ?: ""
+
     // 🔄 Buscar dados da API quando a tela for aberta
     LaunchedEffect(Unit) {
-        val service = RetrofitFactory().getServicoService()
+        val service = RetrofitFactory.getServicoService()
         service.getServicosDisponiveis(token).enqueue(object : Callback<ApiResponse> {
             override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
                 if (response.isSuccessful) {

@@ -33,7 +33,7 @@ class CNHViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val service = RetrofitFactory().getCNHService()
+                val service = RetrofitFactory.getCNHService()
 
                 val body = CNHRequest(
                     numero_cnh = numeroCNH,

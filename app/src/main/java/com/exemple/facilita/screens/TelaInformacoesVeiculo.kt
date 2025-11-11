@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +42,7 @@ fun TelaInformacoesVeiculo(
     tiposVeiculo: String = "", // Recebe os tipos separados por vírgula
     perfilViewModel: PerfilViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val tiposList = remember { tiposVeiculo.split(",").filter { it.isNotEmpty() } }
     val modalidadeViewModel: ModalidadeViewModel = viewModel()
 
@@ -49,8 +51,8 @@ fun TelaInformacoesVeiculo(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Token do usuário autenticado (tipo PRESTADOR)
-    val token = TokenManager.getToken()
+    // Token do usuário autenticado recuperado do TokenManager
+    val token = TokenManager.obterTokenComBearer(context) ?: ""
 
     // Estados para cada veículo (vamos criar campos dinâmicos)
     val veiculosInfo = remember {

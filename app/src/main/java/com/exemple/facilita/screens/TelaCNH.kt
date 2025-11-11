@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,7 +30,6 @@ import com.exemple.facilita.R
 import com.exemple.facilita.viewmodel.CNHViewModel
 import com.exemple.facilita.viewmodel.PerfilViewModel
 import com.exemple.facilita.utils.TokenManager
-import com.exemple.facilita.utils.TokenDebugHelper
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,17 +38,14 @@ fun TelaCNH(
     navController: NavController,
     perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-
+    val context = LocalContext.current
     val viewModel: CNHViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
     val cnhValidada by viewModel.cnhValidada.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Log de debug do token (desenvolvimento)
-    LaunchedEffect(Unit) {
-        TokenDebugHelper.logTokenStatus()
-    }
+
 
     // Observa quando CNH é validada com sucesso e volta para a tela anterior
     LaunchedEffect(cnhValidada) {
@@ -311,22 +308,11 @@ fun TelaCNH(
                             return@clickable
                         }
 
-                        // Validação do token
-                        val token = try {
-                            TokenManager.getToken()
-                        } catch (e: Exception) {
-                            viewModel.setMensagem("Erro ao obter token. Faça login novamente.")
-                            return@clickable
-                        }
+                        // Obter token do TokenManager usando o context
+                        val token = TokenManager.obterTokenComBearer(context)
 
-                        if (token.isBlank()) {
+                        if (token.isNullOrBlank()) {
                             viewModel.setMensagem("Token inválido. Faça login novamente.")
-                            return@clickable
-                        }
-
-                        // Verificação se token está expirado (desenvolvimento)
-                        if (TokenManager.isTokenLikelyExpired()) {
-                            viewModel.setMensagem("Token expirado! Atualize no TokenManager.kt")
                             return@clickable
                         }
 
