@@ -9,7 +9,6 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
-import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface UserService {
@@ -34,29 +33,6 @@ interface UserService {
     @POST("v1/facilita/usuario/verificar-codigo")
     fun verificarCodigo(@Body request: VerificarCodigoRequest): Call<VerificarSenhaResponse>
 
-    @Headers("Content-Type: application/json")
-    @POST("v1/facilita/prestador")
-    suspend fun criarPrestador(
-        @Header("Authorization") token: String,
-        @Body request: CriarPrestadorRequest
-    ): Response<CriarPrestadorResponse>
 
-    @Headers("Content-Type: application/json")
-    @POST("v1/facilita/localizacao")
-    suspend fun criarLocalizacao(
-        @Body request: LocalizacaoRequest
-    ): Response<LocalizacaoResponse>
-
-    @GET("v1/facilita/usuario/perfil")
-    suspend fun obterPerfil(
-        @Header("Authorization") token: String
-    ): Response<PerfilPrestadorResponse>
-
-    @Headers("Content-Type: application/json")
-    @PUT("v1/facilita/usuario/perfil")
-    suspend fun atualizarPerfil(
-        @Header("Authorization") token: String,
-        @Body request: AtualizarPerfilRequest
-    ): Response<AtualizarPerfilResponse>
 
 }
