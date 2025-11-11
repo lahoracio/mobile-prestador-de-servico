@@ -45,8 +45,7 @@ fun TelaInicioPrestador() {
     var isLoading by remember { mutableStateOf(true) }
 
     // 🔑 Token JWT (use o token real depois do login)
-    val token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODYsInRpcG9fY29udGEiOiJQUkVTVEFET1IiLCJlbWFpbCI6Imdpb3Zhbm5hQGdtYWlsLmNvbSIsImlhdCI6MTc2MTgzNjIxNCwiZXhwIjoxNzYxODY1MDE0fQ.tSipx-x5L4XBZ5DgOzrVFKSGHcO5RU6gfEsB-lSBReY"
-
+    val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTE4LCJ0aXBvX2NvbnRhIjpudWxsLCJlbWFpbCI6ImxhcmExQGdtYWlsLmNvbSIsImlhdCI6MTc2Mjg2NDQ3OSwiZXhwIjoxNzYyODkzMjc5LCJpc3MiOiJmYWNpbGl0YS1hcGkiLCJzdWIiOiIxMTgifQ.4hoaa4XUy203q3GGItrpfKvTHgPVkkXZS5HfL91uX7U"
     // 🔄 Buscar dados da API quando a tela for aberta
     LaunchedEffect(Unit) {
         val service = RetrofitFactory().getServicoService()

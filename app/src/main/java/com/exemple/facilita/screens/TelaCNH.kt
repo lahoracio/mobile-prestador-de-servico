@@ -29,6 +29,7 @@ import com.exemple.facilita.R
 import com.exemple.facilita.viewmodel.CNHViewModel
 import com.exemple.facilita.viewmodel.PerfilViewModel
 import com.exemple.facilita.utils.TokenManager
+import com.exemple.facilita.utils.TokenDebugHelper
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +44,11 @@ fun TelaCNH(
     val cnhValidada by viewModel.cnhValidada.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Log de debug do token (desenvolvimento)
+    LaunchedEffect(Unit) {
+        TokenDebugHelper.logTokenStatus()
+    }
 
     // Observa quando CNH é validada com sucesso e volta para a tela anterior
     LaunchedEffect(cnhValidada) {
@@ -305,7 +311,24 @@ fun TelaCNH(
                             return@clickable
                         }
 
-                        val token = TokenManager.getToken()
+                        // Validação do token
+                        val token = try {
+                            TokenManager.getToken()
+                        } catch (e: Exception) {
+                            viewModel.setMensagem("Erro ao obter token. Faça login novamente.")
+                            return@clickable
+                        }
+
+                        if (token.isBlank()) {
+                            viewModel.setMensagem("Token inválido. Faça login novamente.")
+                            return@clickable
+                        }
+
+                        // Verificação se token está expirado (desenvolvimento)
+                        if (TokenManager.isTokenLikelyExpired()) {
+                            viewModel.setMensagem("Token expirado! Atualize no TokenManager.kt")
+                            return@clickable
+                        }
 
                         // Converte "Sim"/"Não" para Boolean
                         val possuiEARBoolean = possuiEAR.equals("Sim", ignoreCase = true)

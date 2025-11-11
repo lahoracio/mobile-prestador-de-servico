@@ -1,27 +1,38 @@
 package com.exemple.facilita.utils
 
 /**
- * Gerenciador simples de token de autenticação
+ * Gerenciador de token de autenticação
  *
- * ⚠️ IMPORTANTE: Este token é temporário e expira!
+ * 📝 MODO DESENVOLVIMENTO:
+ * Este app está em desenvolvimento modular. A tela de login está em outra aplicação
+ * e será integrada depois. Por enquanto, atualize o token manualmente aqui.
  *
- * Para obter um novo token válido:
- * 1. Faça login na API: POST /auth/login
+ * 🔧 PARA ATUALIZAR O TOKEN (quando expirar):
+ *
+ * 1. Faça login no outro app ou use Postman:
+ *    POST https://servidor-facilita.onrender.com/v1/facilita/auth/login
+ *    Body: {"email": "seu_email", "senha": "sua_senha"}
+ *
  * 2. Copie o token da resposta
- * 3. Cole aqui substituindo o currentToken
  *
- * Ou implemente um sistema de login que salve o token automaticamente.
+ * 3. Cole abaixo em currentToken (substitua tudo entre as aspas)
  *
- * Verificar token em: https://jwt.io/
- * - tipo_conta deve ser "PRESTADOR"
- * - exp (expiração) deve ser no futuro
+ * 4. Salve este arquivo e execute o app novamente
+ *
+ * ℹ️ Verificar validade em: https://jwt.io/
+ *    - Procure por "exp" no payload (deve ser data futura)
+ *    - "tipo_conta" deve ser "PRESTADOR"
  */
 object TokenManager {
 
-    // ⚠️ TOKEN TEMPORÁRIO - Expira em 2025-11-06 ~16h
-    // Para atualizar: substitua esta string pelo novo token JWT
-    // Exemplo de resposta da API de login: { "token": "eyJ..." }
-    private var currentToken: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTE2LCJ0aXBvX2NvbnRhIjoiUFJFU1RBRE9SIiwiZW1haWwiOiJrYWlrZWRvZGVkYW9AZ21haWwuY29tIiwiaWF0IjoxNzYyNDU4MDM5LCJleHAiOjE3NjI0ODY4Mzl9.Z5g7sBzaH26GDBbS8T2MMho_cNL3D5_GmqW09UISKIs"
+    // ══════════════════════════════════════════════════════════════════════
+    // 🔑 COLE SEU TOKEN AQUI (entre as aspas):
+    // ══════════════════════════════════════════════════════════════════════
+    private var currentToken: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTE4LCJ0aXBvX2NvbnRhIjpudWxsLCJlbWFpbCI6ImxhcmExQGdtYWlsLmNvbSIsImlhdCI6MTc2Mjg2NDQ3OSwiZXhwIjoxNzYyODkzMjc5LCJpc3MiOiJmYWNpbGl0YS1hcGkiLCJzdWIiOiIxMTgifQ.4hoaa4XUy203q3GGItrpfKvTHgPVkkXZS5HfL91uX7U"
+    // ══════════════════════════════════════════════════════════════════════
+    // ⚠️ Status: TOKEN EXPIRADO (válido até 06/11/2025)
+    // 🔄 Atualize acima quando vir erro "Token expirado ou inválido"
+    // ══════════════════════════════════════════════════════════════════════
 
     /**
      * Retorna o token atual
@@ -56,6 +67,55 @@ object TokenManager {
      */
     fun hasToken(): Boolean {
         return currentToken.isNotEmpty()
+    }
+
+    /**
+     * Retorna informações sobre o token para debug
+     * Use em logs durante desenvolvimento
+     */
+    fun getTokenInfo(): String {
+        if (currentToken.isEmpty()) return "Token vazio"
+
+        return try {
+            // Decodifica o payload do JWT (parte do meio)
+            val parts = currentToken.split(".")
+            if (parts.size != 3) return "Token inválido (formato incorreto)"
+
+            val payload = parts[1]
+            val decodedBytes = android.util.Base64.decode(payload, android.util.Base64.URL_SAFE)
+            val decodedString = String(decodedBytes)
+
+            "Token Info: $decodedString"
+        } catch (e: Exception) {
+            "Erro ao decodificar token: ${e.message}"
+        }
+    }
+
+    /**
+     * Verifica se o token parece estar expirado (verificação local, não 100% precisa)
+     * Útil para desenvolvimento
+     */
+    fun isTokenLikelyExpired(): Boolean {
+        if (currentToken.isEmpty()) return true
+
+        return try {
+            val parts = currentToken.split(".")
+            if (parts.size != 3) return true
+
+            val payload = parts[1]
+            val decodedBytes = android.util.Base64.decode(payload, android.util.Base64.URL_SAFE)
+            val decodedString = String(decodedBytes)
+
+            // Extrai timestamp de expiração (exp)
+            val expMatch = Regex(""""exp":(\d+)""").find(decodedString)
+            val exp = expMatch?.groupValues?.get(1)?.toLongOrNull() ?: return true
+
+            // Compara com timestamp atual
+            val now = System.currentTimeMillis() / 1000
+            exp < now
+        } catch (e: Exception) {
+            true
+        }
     }
 }
 

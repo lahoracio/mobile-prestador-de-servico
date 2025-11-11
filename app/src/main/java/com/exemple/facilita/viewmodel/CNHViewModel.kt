@@ -48,7 +48,15 @@ class CNHViewModel : ViewModel() {
                 _cnhValidada.value = true
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
-                _mensagem.value = "Erro ao cadastrar CNH: ${errorBody ?: e.message()}"
+
+                // Tratamento específico para erro 401 (token inválido/expirado)
+                when (e.code()) {
+                    401 -> _mensagem.value = "Token expirado ou inválido. Faça login novamente."
+                    400 -> _mensagem.value = "Dados inválidos. Verifique as informações da CNH."
+                    404 -> _mensagem.value = "Serviço não encontrado. Contate o suporte."
+                    500 -> _mensagem.value = "Erro no servidor. Tente novamente mais tarde."
+                    else -> _mensagem.value = "Erro ao cadastrar CNH: ${errorBody ?: e.message()}"
+                }
                 _cnhValidada.value = false
             } catch (e: java.io.IOException) {
                 _mensagem.value = "Erro de conexão. Verifique sua internet."

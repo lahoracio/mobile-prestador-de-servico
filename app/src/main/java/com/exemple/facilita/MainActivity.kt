@@ -29,7 +29,7 @@ fun AppNavHost(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = "tela_completar_perfil_prestador"
+        startDestination = "tela_inicio_prestador"
     ) {
 
         // Telas já existentes
