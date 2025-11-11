@@ -1,5 +1,8 @@
 package com.exemple.facilita.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -29,6 +34,10 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
 import com.exemple.facilita.viewmodel.PerfilViewModel
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 
 @Composable
 fun TelaCompletarPerfilPrestador(
@@ -37,8 +46,28 @@ fun TelaCompletarPerfilPrestador(
     onFinalizar: () -> Unit = {},
     onVoltar: (() -> Unit)? = null
 ) {
-    var endereco by remember { mutableStateOf(TextFieldValue("")) }
+    val context = LocalContext.current
+    var endereco by remember { mutableStateOf("") }
     val documentosValidados by perfilViewModel.documentosValidados.collectAsState()
+
+    // Inicializar Google Places API
+    LaunchedEffect(Unit) {
+        if (!Places.isInitialized()) {
+            Places.initialize(context, context.getString(R.string.google_maps_key))
+        }
+    }
+
+    // Launcher para abrir o autocomplete do Google Places
+    val autocompleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.let { data ->
+                val place = Autocomplete.getPlaceFromIntent(data)
+                endereco = place.address ?: ""
+            }
+        }
+    }
 
     // Lista de documentos e suas rotas correspondentes
     val opcoesDocs = listOf(
@@ -123,15 +152,55 @@ fun TelaCompletarPerfilPrestador(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // CAMPO ENDEREÇO
+            // CAMPO ENDEREÇO com Google Places Autocomplete
             item {
-                OutlinedTextField(
-                    value = endereco,
-                    onValueChange = { endereco = it },
-                    label = { Text("Endereço completo") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            // Configurar campos que queremos do Places
+                            val fields = listOf(
+                                Place.Field.ID,
+                                Place.Field.NAME,
+                                Place.Field.ADDRESS,
+                                Place.Field.LAT_LNG
+                            )
+
+                            // Criar intent do Autocomplete
+                            val intent = Autocomplete
+                                .IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                                .setCountry("BR") // Limitar ao Brasil
+                                .build(context)
+
+                            // Abrir o autocomplete
+                            autocompleteLauncher.launch(intent)
+                        }
+                ) {
+                    OutlinedTextField(
+                        value = endereco,
+                        onValueChange = { },
+                        label = { Text("Endereço completo") },
+                        placeholder = { Text("Clique para buscar endereço") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Localização",
+                                tint = Color(0xFF019D31)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = true,
+                        enabled = false,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = Color.Black,
+                            disabledBorderColor = Color.Gray,
+                            disabledLeadingIconColor = Color(0xFF019D31),
+                            disabledLabelColor = Color.Gray,
+                            disabledPlaceholderColor = Color.Gray
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
             }
 
             item {

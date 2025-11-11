@@ -1,5 +1,6 @@
 package com.exemple.facilita.screens
 
+import android.Manifest
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,17 +38,42 @@ fun TelaPermissaoLocalizacaoServico(navController: NavController) {
 
     val locationSettingsClient = remember { LocationServices.getSettingsClient(context) }
 
-    // Launcher para abrir prompt de ativar GPS
+    // Launcher para abrir prompt de ativar GPS (declarado primeiro)
     val locationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            // Usuário ativou o GPS → navega
-            navController.navigate("tela_tipo_veiculo")
+            // Usuário ativou o GPS → navega para completar perfil
+            navController.navigate("tela_completar_perfil_prestador")
         } else {
             Toast.makeText(context, "GPS não ativado", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // Launcher para solicitar permissões de localização
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+
+        if (fineLocationGranted && coarseLocationGranted) {
+            // Após aceitar permissões, ativa o GPS
+            ativarGPS(
+                context = context,
+                locationSettingsClient = locationSettingsClient,
+                onGPSAtivado = { navController.navigate("tela_completar_perfil_prestador") },
+                launcher = locationLauncher
+            )
+        } else {
+            Toast.makeText(
+                context,
+                "Permissões de localização são necessárias para continuar",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
 
     Box(
         modifier = Modifier
@@ -112,11 +138,11 @@ fun TelaPermissaoLocalizacaoServico(navController: NavController) {
 
                 Button(
                     onClick = {
-                        ativarGPS(
-                            context = context,
-                            locationSettingsClient = locationSettingsClient,
-                            onGPSAtivado = { navController.navigate("tela_tipo_veiculo") },
-                            launcher = locationLauncher
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
                         )
                     },
                     shape = RoundedCornerShape(50),
