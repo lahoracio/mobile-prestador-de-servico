@@ -1,6 +1,8 @@
 package com.exemple.facilita.screens
 
 import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,24 +11,37 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
 import com.exemple.facilita.service.ApiResponse
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import kotlin.coroutines.resumeWithException
+
+
 
 @Stable
 data class Solicitacao(
@@ -45,10 +60,9 @@ fun TelaInicioPrestador() {
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // 🔑 Token JWT recuperado do TokenManager após o login
     val token = TokenManager.obterTokenComBearer(context) ?: ""
 
-    // 🔄 Buscar dados da API quando a tela for aberta
+    // 🔄 Buscar solicitações
     LaunchedEffect(Unit) {
         val service = RetrofitFactory.getServicoService()
         service.getServicosDisponiveis(token).enqueue(object : Callback<ApiResponse> {
@@ -79,11 +93,10 @@ fun TelaInicioPrestador() {
         })
     }
 
-    // 🎨 Paleta de cores
+    // Cores
     val backgroundColor = Color(0xFFF5F7FA)
     val primaryColor = Color(0xFF019D31)
     val primaryColorDark = Color(0xFF007A25)
-    val cardBackgroundColor = Color.White
     val textColorPrimary = Color(0xFF212121)
     val textColorSecondary = Color(0xFF757575)
 
@@ -116,10 +129,10 @@ fun TelaInicioPrestador() {
             }
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                IconButton(onClick = { /* Notificação */ }) {
+                IconButton(onClick = { /* notificações */ }) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notificações",
@@ -150,11 +163,7 @@ fun TelaInicioPrestador() {
                     .padding(16.dp)
             ) {
                 Column {
-                    Text(
-                        text = "Seu saldo",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 15.sp
-                    )
+                    Text("Seu saldo", color = Color.White.copy(alpha = 0.9f), fontSize = 15.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -177,7 +186,6 @@ fun TelaInicioPrestador() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 🔹 Título da lista
         Text(
             "Solicitações disponíveis",
             fontWeight = FontWeight.Bold,
@@ -188,26 +196,21 @@ fun TelaInicioPrestador() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Conteúdo principal
         when {
-            isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Carregando solicitações...")
-                }
+            isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Carregando solicitações...")
             }
-            listaSolicitacoes.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Nenhuma solicitação disponível no momento.")
-                }
+
+            listaSolicitacoes.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Nenhuma solicitação disponível no momento.")
             }
-            else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(listaSolicitacoes, key = { it.id }) { item ->
-                        SolicitacaoCard(solicitacao = item)
-                    }
+
+            else -> LazyColumn(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(listaSolicitacoes, key = { it.id }) { item ->
+                    SolicitacaoCard(solicitacao = item, token = token)
                 }
             }
         }
@@ -215,12 +218,106 @@ fun TelaInicioPrestador() {
 }
 
 @Composable
-fun SolicitacaoCard(solicitacao: Solicitacao, modifier: Modifier = Modifier) {
+fun SolicitacaoCard(solicitacao: Solicitacao, token: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val acceptColor = Color(0xFF019D31)
     val rejectColor = Color(0xFFD32F2F)
     val labelColor = Color(0xFF757575)
     val valueColor = Color(0xFF212121)
+
+    var showSuccessAnimation by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Usar um coroutine scope seguro para atualizações de estado
+    val coroutineScope = rememberCoroutineScope()
+
+    fun aceitarServico() {
+        if (isLoading) return
+
+        isLoading = true
+
+        coroutineScope.launch {
+            try {
+                // Fazer a chamada em background
+                val result = withContext(Dispatchers.IO) {
+                    try {
+                        val service = RetrofitFactory.getServicoService()
+                        val response = service.aceitarServico(token, solicitacao.id).execute()
+                        Result.success(response)
+                    } catch (e: Exception) {
+                        Result.failure<Response<ApiResponse>>(e)
+                    }
+                }
+
+                // Processar o resultado na main thread
+                when {
+                    result.isSuccess -> {
+                        val response = result.getOrNull()
+                        if (response?.isSuccessful == true) {
+                            showSuccessAnimation = true
+                            Toast.makeText(context, "Serviço aceito com sucesso!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val errorCode = response?.code() ?: "Unknown"
+                            val errorBody = response?.errorBody()?.string() ?: "No error body"
+                            Toast.makeText(context, "Erro: $errorCode - $errorBody", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    result.isFailure -> {
+                        val exception = result.exceptionOrNull()
+                        val errorMessage = when {
+                            exception is java.net.SocketTimeoutException -> "Timeout na conexão"
+                            exception is java.net.UnknownHostException -> "Sem conexão com a internet"
+                            exception != null -> "Erro: ${exception.message ?: exception.javaClass.simpleName}"
+                            else -> "Erro desconhecido"
+                        }
+                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Erro inesperado: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // Versão alternativa mais simples se a anterior não funcionar
+    fun aceitarServicoAlternativo() {
+        if (isLoading) return
+
+        isLoading = true
+
+        val service = RetrofitFactory.getServicoService()
+        service.aceitarServico(token, solicitacao.id).enqueue(object : Callback<ApiResponse> {
+            override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
+                isLoading = false
+                if (response.isSuccessful) {
+                    showSuccessAnimation = true
+                    Toast.makeText(context, "Serviço aceito com sucesso!", Toast.LENGTH_SHORT).show()
+                } else {
+                    val errorMsg = when (response.code()) {
+                        400 -> "Requisição inválida"
+                        401 -> "Não autorizado"
+                        404 -> "Serviço não encontrado"
+                        409 -> "Serviço já foi aceito"
+                        500 -> "Erro interno do servidor"
+                        else -> "Erro: ${response.code()}"
+                    }
+                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
+                isLoading = false
+                val errorMsg = when (t) {
+                    is java.net.SocketTimeoutException -> "Timeout na conexão"
+                    is java.net.UnknownHostException -> "Sem conexão com a internet"
+                    else -> "Erro de conexão: ${t.message ?: "Verifique sua internet"}"
+                }
+                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+            }
+        })
+    }
 
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -230,7 +327,6 @@ fun SolicitacaoCard(solicitacao: Solicitacao, modifier: Modifier = Modifier) {
         border = BorderStroke(1.dp, Color(0xFFEAEAEA))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Cabeçalho
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -240,32 +336,20 @@ fun SolicitacaoCard(solicitacao: Solicitacao, modifier: Modifier = Modifier) {
             }
 
             Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "${solicitacao.servico} • ${solicitacao.distancia}",
-                fontSize = 13.sp,
-                color = labelColor
-            )
+            Text("${solicitacao.servico} • ${solicitacao.distancia}", fontSize = 13.sp, color = labelColor)
 
             Spacer(modifier = Modifier.height(6.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("🕒 ${solicitacao.horario}", fontSize = 13.sp, color = labelColor)
-                Text(
-                    solicitacao.valor,
-                    fontWeight = FontWeight.Bold,
-                    color = valueColor,
-                    fontSize = 15.sp
-                )
+                Text(solicitacao.valor, fontWeight = FontWeight.Bold, color = valueColor, fontSize = 15.sp)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 🔹 Botões Aceitar e Recusar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -273,39 +357,133 @@ fun SolicitacaoCard(solicitacao: Solicitacao, modifier: Modifier = Modifier) {
             ) {
                 Button(
                     onClick = {
-                        Toast.makeText(context, "Serviço aceito!", Toast.LENGTH_SHORT).show()
+                        // Tente usar a versão alternativa primeiro
+                        aceitarServicoAlternativo()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = acceptColor),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isLoading) Color.Gray else acceptColor
+                    ),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(38.dp),
-                    contentPadding = PaddingValues(vertical = 6.dp)
+                    enabled = !isLoading
                 ) {
-                    Text(
-                        text = "Aceitar",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    if (isLoading) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Aceitando...", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    } else {
+                        Text("Aceitar", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
 
                 Button(
                     onClick = {
-                        Toast.makeText(context, "Serviço recusado!", Toast.LENGTH_SHORT).show()
+                        if (!isLoading) {
+                            Toast.makeText(context, "Serviço recusado!", Toast.LENGTH_SHORT).show()
+                        }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = rejectColor),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isLoading) Color.Gray else rejectColor
+                    ),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(38.dp),
-                    contentPadding = PaddingValues(vertical = 6.dp)
+                    enabled = !isLoading
                 ) {
+                    Text("Recusar", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+
+    // Animação de sucesso - fora do Card
+    if (showSuccessAnimation) {
+        ServicoAceitoAnimation(
+            onDismiss = {
+                showSuccessAnimation = false
+            }
+        )
+    }
+}
+
+@Composable
+fun ServicoAceitoAnimation(onDismiss: () -> Unit) {
+    var visible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(visible) {
+        if (visible) {
+            delay(2500) // Mostra por 2.5 segundos
+            visible = false
+            delay(300) // Espera a animação de saída
+            onDismiss()
+        }
+    }
+
+    Dialog(
+        onDismissRequest = { /* Não permitir fechar clicando fora */ },
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = scaleIn(
+                initialScale = 0.3f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(animationSpec = tween(300)),
+            exit = scaleOut(
+                targetScale = 1.1f,
+                animationSpec = tween(300)
+            ) + fadeOut(animationSpec = tween(300))
+        ) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Sucesso",
+                        tint = Color(0xFF019D31),
+                        modifier = Modifier.size(64.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
-                        text = "Recusar",
-                        color = Color.White,
+                        text = "Serviço Aceito!",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF212121),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "O serviço foi aceito com sucesso.",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        color = Color(0xFF757575),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
