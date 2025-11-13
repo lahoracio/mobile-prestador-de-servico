@@ -24,25 +24,37 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.abs
 
 @Composable
 fun TelaInicio1(navController: NavController) {
     val infiniteTransition = rememberInfiniteTransition(label = "tela1")
-    val rotation by infiniteTransition.animateFloat(
+
+    val particleOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 360f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
+            animation = tween(3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "rotation"
+        label = "particles"
+    )
+
+    val greenPulse by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
     )
 
     val contentAlpha = remember { Animatable(0f) }
     val iconScale = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        iconScale.animateTo(1.2f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
+        iconScale.animateTo(1.2f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
         iconScale.animateTo(1f, tween(300))
         contentAlpha.animateTo(1f, tween(1000))
     }
@@ -62,27 +74,40 @@ fun TelaInicio1(navController: NavController) {
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
-                color = Color(0xFF019D31).copy(alpha = 0.05f),
-                radius = size.maxDimension * 0.6f,
-                center = Offset(size.width * 0.2f, size.height * 0.1f)
+                color = Color(0xFF06C755).copy(alpha = 0.08f * greenPulse),
+                radius = size.maxDimension * 0.5f,
+                center = Offset(size.width * 0.7f, size.height * 0.2f)
             )
             drawCircle(
-                color = Color(0xFF019D31).copy(alpha = 0.08f),
-                radius = size.maxDimension * 0.4f,
-                center = Offset(size.width * 0.8f, size.height * 0.3f)
+                color = Color(0xFF019D31).copy(alpha = 0.06f * greenPulse),
+                radius = size.maxDimension * 0.7f,
+                center = Offset(size.width * 0.3f, size.height * 0.4f)
             )
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            for (i in 0..15) {
-                val angle = (rotation + i * 24f) % 360f
-                val radius = size.minDimension * 0.3f
-                val x = center.x + cos(angle * 0.0174533f) * radius
-                val y = center.y + sin(angle * 0.0174533f) * radius
+            for (i in 0..20) {
+                val xOffset = (size.width / 20f) * i
+                val yProgress = (particleOffset + i * 0.05f) % 1f
+                val yPos = size.height * yProgress
+                val alpha = if (yProgress < 0.5f) yProgress else (1f - yProgress)
+
                 drawCircle(
-                    color = Color(0xFF019D31).copy(alpha = 0.15f),
-                    radius = 4f,
-                    center = Offset(x, y)
+                    color = Color(0xFF06C755).copy(alpha = alpha * 0.4f),
+                    radius = 6f + (i % 3) * 2f,
+                    center = Offset(xOffset, yPos)
+                )
+            }
+        }
+
+        Canvas(modifier = Modifier.fillMaxSize().alpha(0.12f)) {
+            for (i in 0..8) {
+                val y = size.height * i / 8f
+                drawLine(
+                    color = Color(0xFF06C755),
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1.5f
                 )
             }
         }
@@ -105,6 +130,13 @@ fun TelaInicio1(navController: NavController) {
                     modifier = Modifier.size(140.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    Canvas(modifier = Modifier.size(140.dp)) {
+                        drawCircle(
+                            color = Color(0xFF06C755).copy(alpha = greenPulse * 0.3f),
+                            radius = size.minDimension / 2f
+                        )
+                    }
+
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -121,45 +153,33 @@ fun TelaInicio1(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(34.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "Bem-Vindo ao Facilita",
-                    fontSize = 24.sp,
+                    text = "Bem-Vindo Ao Facilita",
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = Color(0xFF019D31),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
-                Text(
-                    text = "Facilitando seu dia a dia com\n segurança e praticidade",
-                    fontSize = 14.sp,
-                    color = Color(0xFF424242),
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    MiniInfoCard(
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CleanFeatureCard(
                         icon = Icons.Default.AttachMoney,
-                        text = "Renda\nExtra",
-                        modifier = Modifier.weight(1f)
+                        title = "Renda Extra",
+                        subtitle = "Ganhe dinheiro no seu tempo livre"
                     )
-                    MiniInfoCard(
+                    CleanFeatureCard(
                         icon = Icons.Default.Schedule,
-                        text = "Horário\nFlexível",
-                        modifier = Modifier.weight(1f)
+                        title = "Horário Flexível",
+                        subtitle = "Trabalhe quando quiser"
                     )
-                    MiniInfoCard(
-                        icon = Icons.Default.Rocket,
-                        text = "Crescimento\nRápido",
-                        modifier = Modifier.weight(1f)
+                    CleanFeatureCard(
+                        icon = Icons.Default.Star,
+                        title = "Crescimento Rápido",
+                        subtitle = "Construa sua reputação"
                     )
                 }
             }
@@ -220,6 +240,28 @@ fun TelaInicio1(navController: NavController) {
 
 @Composable
 fun TelaInicio2(navController: NavController) {
+    val infiniteTransition = rememberInfiniteTransition(label = "tela2")
+
+    val waveProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "waves"
+    )
+
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
     val contentAlpha = remember { Animatable(0f) }
     val iconScale = remember { Animatable(0f) }
 
@@ -243,26 +285,59 @@ fun TelaInicio2(navController: NavController) {
             )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
+            for (i in 0..4) {
+                val waveRadius = (size.minDimension * 0.3f) * ((waveProgress + i * 0.2f) % 1f)
+                val waveAlpha = 1f - ((waveProgress + i * 0.2f) % 1f)
+
+                drawCircle(
+                    color = Color(0xFF06C755).copy(alpha = waveAlpha * 0.3f),
+                    radius = waveRadius,
+                    center = center,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f)
+                )
+            }
+        }
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val angle1 = rotation * 0.0174533f
+            val angle2 = (rotation + 120f) * 0.0174533f
+            val angle3 = (rotation + 240f) * 0.0174533f
+            val radius = size.minDimension * 0.25f
+
             drawCircle(
-                color = Color(0xFF019D31).copy(alpha = 0.06f),
-                radius = size.maxDimension * 0.5f,
-                center = Offset(size.width * 0.7f, size.height * 0.2f)
+                color = Color(0xFF06C755).copy(alpha = 0.1f),
+                radius = size.maxDimension * 0.15f,
+                center = Offset(
+                    center.x + cos(angle1) * radius,
+                    center.y + sin(angle1) * radius
+                )
             )
             drawCircle(
-                color = Color(0xFF019D31).copy(alpha = 0.04f),
-                radius = size.maxDimension * 0.7f,
-                center = Offset(size.width * 0.3f, size.height * 0.4f)
+                color = Color(0xFF019D31).copy(alpha = 0.08f),
+                radius = size.maxDimension * 0.12f,
+                center = Offset(
+                    center.x + cos(angle2) * radius,
+                    center.y + sin(angle2) * radius
+                )
+            )
+            drawCircle(
+                color = Color(0xFF06C755).copy(alpha = 0.06f),
+                radius = size.maxDimension * 0.18f,
+                center = Offset(
+                    center.x + cos(angle3) * radius,
+                    center.y + sin(angle3) * radius
+                )
             )
         }
 
-        Canvas(modifier = Modifier.fillMaxSize().alpha(0.08f)) {
+        Canvas(modifier = Modifier.fillMaxSize().alpha(0.1f)) {
             for (i in 0..8) {
                 val y = size.height * i / 8f
                 drawLine(
-                    color = Color(0xFF019D31),
+                    color = Color(0xFF06C755),
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
-                    strokeWidth = 1f
+                    strokeWidth = 1.5f
                 )
             }
         }
@@ -285,6 +360,19 @@ fun TelaInicio2(navController: NavController) {
                     modifier = Modifier.size(140.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    Canvas(modifier = Modifier.size(140.dp)) {
+                        for (i in 1..3) {
+                            val ringRadius = size.minDimension / 2f * (0.8f + i * 0.1f)
+                            val ringAlpha = (1f - (waveProgress + i * 0.3f) % 1f) * 0.4f
+
+                            drawCircle(
+                                color = Color(0xFF06C755).copy(alpha = ringAlpha),
+                                radius = ringRadius,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                            )
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -301,7 +389,7 @@ fun TelaInicio2(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = "Controle Total",
@@ -316,7 +404,6 @@ fun TelaInicio2(navController: NavController) {
                 Text(
                     text = "das Suas Entregas",
                     fontSize = 16.sp,
-
                     color = Color(0xFF424242),
                     textAlign = TextAlign.Center
                 )
@@ -409,6 +496,26 @@ fun TelaInicio3(navController: NavController) {
         label = "pulse"
     )
 
+    val explosionProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "explosion"
+    )
+
+    val sparkle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkle"
+    )
+
     val contentAlpha = remember { Animatable(0f) }
     val iconScale = remember { Animatable(0f) }
 
@@ -432,27 +539,54 @@ fun TelaInicio3(navController: NavController) {
             )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(
-                color = Color(0xFF019D31).copy(alpha = 0.08f),
-                radius = size.maxDimension * 0.5f,
-                center = Offset(size.width * 0.3f, size.height * 0.2f)
-            )
-            drawCircle(
-                color = Color(0xFF019D31).copy(alpha = 0.05f),
-                radius = size.maxDimension * 0.7f,
-                center = Offset(size.width * 0.7f, size.height * 0.5f)
-            )
+            for (i in 0..30) {
+                val angle = (i * 12f) * 0.0174533f
+                val distance = size.minDimension * 0.35f * explosionProgress
+                val particleX = center.x + cos(angle) * distance
+                val particleY = center.y + sin(angle) * distance
+                val particleAlpha = (1f - explosionProgress) * 0.6f
+
+                drawCircle(
+                    color = Color(0xFF06C755).copy(alpha = particleAlpha),
+                    radius = 8f - (explosionProgress * 4f),
+                    center = Offset(particleX, particleY)
+                )
+            }
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            for (i in 1..4) {
-                val radius = size.minDimension * (i / 5f)
-                val alpha = (5 - i) / 20f
+            for (i in 1..5) {
+                val radius = size.minDimension * (i / 6f) * pulse
+                val alpha = ((6 - i) / 15f) * sparkle
                 drawCircle(
-                    color = Color(0xFF019D31).copy(alpha = alpha),
+                    color = Color(0xFF06C755).copy(alpha = alpha),
                     radius = radius,
                     center = center,
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                )
+            }
+        }
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val starPositions = listOf(
+                Offset(size.width * 0.15f, size.height * 0.15f),
+                Offset(size.width * 0.85f, size.height * 0.15f),
+                Offset(size.width * 0.15f, size.height * 0.85f),
+                Offset(size.width * 0.85f, size.height * 0.85f),
+                Offset(size.width * 0.5f, size.height * 0.1f)
+            )
+
+            starPositions.forEachIndexed { index, pos ->
+                val starAlpha = abs(sin((sparkle + index * 0.2f) * 3.14f)) * 0.5f
+                drawCircle(
+                    color = Color(0xFF06C755).copy(alpha = starAlpha),
+                    radius = 6f,
+                    center = pos
+                )
+                drawCircle(
+                    color = Color(0xFF06C755).copy(alpha = starAlpha * 0.3f),
+                    radius = 12f,
+                    center = pos
                 )
             }
         }
@@ -475,6 +609,33 @@ fun TelaInicio3(navController: NavController) {
                     modifier = Modifier.size(140.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    Canvas(modifier = Modifier.size(160.dp)) {
+                        drawCircle(
+                            color = Color(0xFF06C755).copy(alpha = sparkle * 0.3f),
+                            radius = size.minDimension / 2f
+                        )
+                        for (i in 0..7) {
+                            val angle = (i * 45f + explosionProgress * 360f) * 0.0174533f
+                            val startRadius = size.minDimension * 0.3f
+                            val endRadius = size.minDimension * 0.5f
+                            val rayAlpha = sparkle * 0.4f
+
+                            drawLine(
+                                color = Color(0xFF06C755).copy(alpha = rayAlpha),
+                                start = Offset(
+                                    center.x + cos(angle) * startRadius,
+                                    center.y + sin(angle) * startRadius
+                                ),
+                                end = Offset(
+                                    center.x + cos(angle) * endRadius,
+                                    center.y + sin(angle) * endRadius
+                                ),
+                                strokeWidth = 3f,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -494,10 +655,19 @@ fun TelaInicio3(navController: NavController) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "Facilitando seu dia a dia",
+                    text = "Comece Agora",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = Color(0xFF019D31),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = "Facilitando seu dia a dia",
+                    fontSize = 16.sp,
+                    color = Color(0xFF424242),
                     textAlign = TextAlign.Center
                 )
 
@@ -587,44 +757,6 @@ fun PageIndicator(isActive: Boolean) {
                 shape = RoundedCornerShape(2.dp)
             )
     )
-}
-
-@Composable
-fun MiniInfoCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.height(90.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = Color(0xFF019D31)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = text,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF424242),
-                textAlign = TextAlign.Center,
-                lineHeight = 14.sp
-            )
-        }
-    }
 }
 
 @Composable

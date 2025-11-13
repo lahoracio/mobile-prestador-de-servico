@@ -71,7 +71,7 @@ fun SplashScreen(navController: NavController) {
                 speed = Random.nextFloat() * 2f + 1f,
                 radius = Random.nextFloat() * 300f + 100f,
                 size = Random.nextFloat() * 6f + 2f,
-                color = if (Random.nextBoolean()) Color(0xFF00FF47) else Color(0xFF019D31)
+                color = Color(0xFF019D31)
             )
         }
     }
@@ -158,7 +158,7 @@ fun SplashScreen(navController: NavController) {
 
                 rotate(i * 30f) {
                     drawCircle(
-                        color = Color(0xFF00FF47).copy(alpha = alpha),
+                        color = Color(0xFF019D31).copy(alpha = alpha),
                         radius = radius,
                         center = Offset(center.x, center.y * scaleY),
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
@@ -271,7 +271,7 @@ fun SplashScreen(navController: NavController) {
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFF00FF47).copy(alpha = 0.4f),
+                            Color(0xFF019D31).copy(alpha = 0.4f),
                             Color.Transparent
                         ),
                         radius = size.minDimension / 1.5f
@@ -292,7 +292,7 @@ fun SplashScreen(navController: NavController) {
 
                 // Borda externa brilhante
                 drawCircle(
-                    color = Color(0xFF00FF47),
+                    color = Color(0xFF019D31),
                     radius = size.minDimension / 2.5f,
                     style = Stroke(width = 4f)
                 )
@@ -312,7 +312,7 @@ fun SplashScreen(navController: NavController) {
                             val startY = -size.minDimension / 6f
                             val endY = -size.minDimension / 4.5f
                             drawLine(
-                                color = Color(0xFF00FF47).copy(alpha = 0.6f),
+                                color = Color(0xFF019D31).copy(alpha = 0.6f),
                                 start = Offset(center.x, center.y + startY),
                                 end = Offset(center.x, center.y + endY),
                                 strokeWidth = 3f,
@@ -335,7 +335,7 @@ fun SplashScreen(navController: NavController) {
                     text = "Facilita",
                     fontSize = 52.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color(0xFF00FF47),
+                    color = Color(0xFF019D31),
                     letterSpacing = 4.sp,
                     modifier = Modifier
                         .blur(12.dp)
@@ -358,7 +358,7 @@ fun SplashScreen(navController: NavController) {
                 Box(
                     modifier = Modifier
                         .background(
-                            Color(0xFF00FF47),
+                            Color(0xFF019D31),
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
                         )
                         .padding(horizontal = 24.dp, vertical = 8.dp)
@@ -367,7 +367,7 @@ fun SplashScreen(navController: NavController) {
                         text = "PRESTADOR",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.Black,
+                        color = Color.White,
                         letterSpacing = 3.sp
                     )
                 }
@@ -383,7 +383,7 @@ fun SplashScreen(navController: NavController) {
                         modifier = Modifier
                             .size(6.dp)
                             .background(
-                                Color(0xFF00FF47),
+                                Color(0xFF019D31),
                                 shape = androidx.compose.foundation.shape.CircleShape
                             )
                     )
@@ -392,7 +392,7 @@ fun SplashScreen(navController: NavController) {
                         text = "Seu trabalho facilita vidas. ",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF00FF47),
+                        color = Color(0xFF019D31),
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -400,7 +400,7 @@ fun SplashScreen(navController: NavController) {
                         modifier = Modifier
                             .size(6.dp)
                             .background(
-                                Color(0xFF00FF47),
+                                Color(0xFF019D31),
                                 shape = androidx.compose.foundation.shape.CircleShape
                             )
                     )
@@ -408,11 +408,11 @@ fun SplashScreen(navController: NavController) {
             }
         }
 
-        // Camada 7: Efeito de luz inferior
+        // Camada 7: Ondas de energia pulsantes
         Canvas(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
+                .fillMaxSize()
+                .alpha(logoAlpha.value * 0.3f)
                 .align(Alignment.BottomCenter)
                 .alpha(0.4f)
         ) {
@@ -421,7 +421,7 @@ fun SplashScreen(navController: NavController) {
                     colors = listOf(
                         Color.Transparent,
                         Color(0xFF019D31).copy(alpha = 0.3f),
-                        Color(0xFF00FF47).copy(alpha = 0.2f)
+                        Color(0xFF019D31).copy(alpha = 0.2f)
                     )
                 )
             )

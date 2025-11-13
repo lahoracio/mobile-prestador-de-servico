@@ -135,7 +135,7 @@ fun TelaLogin(navController: NavController) {
                 ) {
                     Text(
                         text = "Fazer login",
-                        fontSize = 22.ssp(),
+                        fontSize = 16.ssp(),
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
                         modifier = Modifier.padding(bottom = 20.sdp())
