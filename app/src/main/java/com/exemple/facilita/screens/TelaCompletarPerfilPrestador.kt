@@ -8,12 +8,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +38,9 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class EnderecoInfo(
     val endereco: String,
@@ -53,10 +57,11 @@ data class EnderecoInfo(
 @Composable
 fun TelaCompletarPerfilPrestador(
     navController: NavController,
-    perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel
 ) {
     val context = LocalContext.current
-    val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val scope = rememberCoroutineScope()
 
     // Estados dos endereços
     var enderecoMora by remember { mutableStateOf<EnderecoInfo?>(null) }
@@ -68,11 +73,57 @@ fun TelaCompletarPerfilPrestador(
     val documentoCadastrado by prestadorViewModel.documentoCadastrado.collectAsState()
     val cnhCadastrada by prestadorViewModel.cnhCadastrada.collectAsState()
     val veiculoCadastrado by prestadorViewModel.veiculoCadastrado.collectAsState()
-    val documentosValidados by perfilViewModel.documentosValidados.collectAsState()
     val mensagem by prestadorViewModel.mensagem.collectAsState()
     val sucesso by prestadorViewModel.sucesso.collectAsState()
     val novoToken by prestadorViewModel.novoToken.collectAsState()
     val isLoading by prestadorViewModel.isLoading.collectAsState()
+
+    // Estado de loading para finalizar cadastro
+    var isFinalizando by remember { mutableStateOf(false) }
+
+    // Estado do scroll para manter a posição ao voltar do Google Places
+    val listState = rememberLazyListState()
+
+    // Função para finalizar o cadastro
+    fun finalizarCadastro() {
+        scope.launch(Dispatchers.IO) {
+            try {
+                isFinalizando = true
+                val token = com.exemple.facilita.utils.TokenManager.obterToken(context)
+
+                if (token.isNullOrBlank()) {
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "Token não encontrado. Faça login novamente", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                val response = com.exemple.facilita.service.RetrofitFactory.getPrestadorService()
+                    .finalizarCadastro("Bearer $token")
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful && response.body() != null) {
+                        android.widget.Toast.makeText(context, "✅ Cadastro finalizado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
+                        kotlinx.coroutines.delay(800)
+                        navController.navigate("tela_inicio_prestador") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "Erro desconhecido"
+                        android.widget.Toast.makeText(context, "Erro ao finalizar: $errorMsg", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "Erro: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    isFinalizando = false
+                }
+            }
+        }
+    }
 
     // Observar sucesso para salvar token
     LaunchedEffect(sucesso, novoToken) {
@@ -152,20 +203,10 @@ fun TelaCompletarPerfilPrestador(
         }
     }
 
-    // Lista de documentos e suas rotas correspondentes
-    val opcoesDocs = listOf(
-        "CNH com EAR" to "tela_cnh",
-        "Documentos" to "tela_documentos",
-        "Informações do veículo" to "tela_tipo_veiculo"
-    )
-
-    // Atualiza o estado quando volta de uma tela de validação
-    LaunchedEffect(navController.currentBackStackEntry) {
-        // Você pode adicionar lógica aqui se necessário
-    }
 
     Scaffold(containerColor = Color(0xFFE6E6E6)) { padding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
@@ -358,157 +399,114 @@ fun TelaCompletarPerfilPrestador(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Siga a ordem: Documento → CNH → Veículo",
+                        text = "Complete todos os documentos necessários",
                         fontSize = 14.sp,
                         color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // 1. DOCUMENTOS (CPF ou RG) - Primeiro
+                item {
+                    CardDocumento(
+                        titulo = "Documento (CPF ou RG)",
+                        descricao = if (documentoCadastrado) "✓ Documento cadastrado" else "Cadastre seu CPF ou RG",
+                        isValidado = documentoCadastrado,
+                        onClick = {
+                            if (!documentoCadastrado) {
+                                navController.navigate("tela_documentos")
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // 1. DOCUMENTOS (CPF ou RG) - Primeiro
-                if (!documentoCadastrado) {
-                    item {
-                        CardDocumento(
-                            titulo = "Documento (CPF ou RG)",
-                            descricao = "Cadastre seu CPF ou RG",
-                            isValidado = false,
-                            onClick = { navController.navigate("tela_documentos") }
-                        )
-                    }
-                }
-
-                // 2. CNH - Segundo (só aparece após documentos)
-                if (documentoCadastrado && !cnhCadastrada) {
-                    item {
-                        CardDocumento(
-                            titulo = "CNH com EAR",
-                            descricao = "Cadastre sua CNH",
-                            isValidado = false,
-                            onClick = { navController.navigate("tela_cnh") }
-                        )
-                    }
-                }
-
-                // 3. VEÍCULO - Terceiro (só aparece após CNH)
-                if (documentoCadastrado && cnhCadastrada && !veiculoCadastrado) {
-                    item {
-                        CardDocumento(
-                            titulo = "Informações do Veículo",
-                            descricao = "Cadastre seu veículo",
-                            isValidado = false,
-                            onClick = { navController.navigate("tela_tipo_veiculo") }
-                        )
-                    }
-                }
-
-                // Resumo dos documentos cadastrados
-                if (documentoCadastrado || cnhCadastrada || veiculoCadastrado) {
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Documentos cadastrados:",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF019D31)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    if (documentoCadastrado) {
-                        item {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Color(0xFF00B94A),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Documento (CPF/RG)",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF00B94A)
-                                )
+                // 2. CNH - Segundo
+                item {
+                    CardDocumento(
+                        titulo = "CNH com EAR",
+                        descricao = if (cnhCadastrada) "✓ CNH cadastrada" else "Cadastre sua CNH",
+                        isValidado = cnhCadastrada,
+                        onClick = {
+                            if (!cnhCadastrada && documentoCadastrado) {
+                                navController.navigate("tela_cnh")
+                            } else if (!documentoCadastrado) {
+                                android.widget.Toast.makeText(context, "Cadastre o documento (CPF/RG) primeiro", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         }
-                    }
-
-                    if (cnhCadastrada) {
-                        item {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Color(0xFF00B94A),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "CNH com EAR",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF00B94A)
-                                )
-                            }
-                        }
-                    }
-
-                    if (veiculoCadastrado) {
-                        item {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Color(0xFF00B94A),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Informações do Veículo",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF00B94A)
-                                )
-                            }
-                        }
-                    }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                item { Spacer(modifier = Modifier.height(32.dp)) }
+                // 3. VEÍCULO - Terceiro
+                item {
+                    CardDocumento(
+                        titulo = "Informações do Veículo",
+                        descricao = if (veiculoCadastrado) "✓ Veículo cadastrado" else "Cadastre seu veículo",
+                        isValidado = veiculoCadastrado,
+                        onClick = {
+                            if (!veiculoCadastrado && documentoCadastrado && cnhCadastrada) {
+                                navController.navigate("tela_tipo_veiculo")
+                            } else if (!documentoCadastrado) {
+                                android.widget.Toast.makeText(context, "Cadastre o documento (CPF/RG) primeiro", android.widget.Toast.LENGTH_SHORT).show()
+                            } else if (!cnhCadastrada) {
+                                android.widget.Toast.makeText(context, "Cadastre a CNH primeiro", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+
+                item { Spacer(modifier = Modifier.height(24.dp)) }
 
                 // Botão Finalizar (só aparece quando todos documentos estão cadastrados)
                 if (documentoCadastrado && cnhCadastrada && veiculoCadastrado) {
                     item {
-                        Box(
+                        Button(
+                            onClick = { finalizarCadastro() },
                             modifier = Modifier
                                 .width(220.dp)
-                                .height(48.dp)
-                                .clickable {
-                                    navController.navigate("tela_inicio_prestador") {
-                                        popUpTo(0) { inclusive = true }
+                                .height(56.dp)
+                                .shadow(8.dp, RoundedCornerShape(28.dp)),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            contentPadding = PaddingValues(),
+                            enabled = !isFinalizando
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))
+                                        ),
+                                        shape = RoundedCornerShape(28.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isFinalizando) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Finalizar Cadastro",
+                                            color = Color.White,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))
-                                    ),
-                                    shape = RoundedCornerShape(50)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Finalizar",
-                                color = Color.White,
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            }
                         }
                     }
                 }

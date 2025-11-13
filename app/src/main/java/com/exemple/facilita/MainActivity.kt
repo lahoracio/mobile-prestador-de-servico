@@ -24,8 +24,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavHost(navController: NavHostController) {
-    // ViewModel compartilhado entre todas as telas
+    // ViewModels compartilhados entre todas as telas
     val perfilViewModel: PerfilViewModel = viewModel()
+    val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -70,14 +71,23 @@ fun AppNavHost(navController: NavHostController) {
             TelaRedefinirSenha(navController, usuarioId)
         }
 
-        //  Nova rota para a tela inicial do prestador
+        //  Rotas do prestador
         composable("tela_inicio_prestador") {
-            TelaInicioPrestador()
+            TelaInicioPrestador(navController)
         }
 
-        composable("tela_tipo_veiculo") {
-            TelaTipoVeiculo(navController)
+        composable("tela_perfil_prestador") {
+            TelaPerfilPrestador(navController)
         }
+
+        composable("tela_servicos") {
+            TelaServicos(navController)
+        }
+
+        composable("tela_historico") {
+            TelaHistorico(navController)
+        }
+
 
         composable("tela_tipo_conta_servico") {
             TelaTipoContaServico(navController)
@@ -93,15 +103,24 @@ fun AppNavHost(navController: NavHostController) {
         }
 
         composable("tela_completar_perfil_prestador") {
-            TelaCompletarPerfilPrestador(navController, perfilViewModel)
+            TelaCompletarPerfilPrestador(navController, perfilViewModel, prestadorViewModel)
         }
 
         composable("tela_cnh") {
-            TelaCNH(navController, perfilViewModel)
+            TelaCNH(navController, perfilViewModel, prestadorViewModel)
         }
 
         composable("tela_documentos") {
-            TelaDocumentos(navController, perfilViewModel)
+            TelaDocumentos(navController, prestadorViewModel)
+        }
+
+        composable("tela_tipo_veiculo") {
+            TelaTipoVeiculo(navController, prestadorViewModel)
+        }
+
+        composable("tela_informacoes_veiculo/{tiposVeiculo}") { backStackEntry ->
+            val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
+            TelaInformacoesVeiculo(navController, tiposVeiculo, prestadorViewModel)
         }
 
         // TODO: Descomentar após corrigir TelaInformacoesVeiculo.kt (remover código duplicado)

@@ -51,8 +51,16 @@ class CNHViewModel : ViewModel() {
                 val response = service.cadastrarCNH("Bearer $token", body)
 
                 android.util.Log.d("CNH_DEBUG", "Resposta recebida: $response")
-                _mensagem.value = "CNH cadastrada com sucesso!"
-                _cnhValidada.value = true
+
+                // Verificar se a CNH foi cadastrada com sucesso
+                if (response.cnh != null) {
+                    _mensagem.value = response.message
+                    _cnhValidada.value = true
+                } else {
+                    // API retornou "cnh": false indicando erro
+                    _mensagem.value = response.message
+                    _cnhValidada.value = false
+                }
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 android.util.Log.e("CNH_ERROR", "Erro HTTP ${e.code()}: $errorBody")

@@ -52,5 +52,7 @@ object RetrofitFactory {
     fun getDocumentoService(): DocumentoService = retrofit.create(DocumentoService::class.java)
 
     fun getModalidadeService(): ModalidadeService = retrofit.create(ModalidadeService::class.java)
+
+    fun getPrestadorService(): PrestadorService = retrofit.create(PrestadorService::class.java)
 }
 

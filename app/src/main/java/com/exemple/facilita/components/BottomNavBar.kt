@@ -1,6 +1,7 @@
 package com.exemple.facilita.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,33 +21,38 @@ import com.exemple.facilita.model.BottomNavItem
 @Composable
 fun BottomNavBar(navController: NavController) {
     val items = listOf(
-        BottomNavItem("Home", Icons.Default.Home, "tela_home"),
-        BottomNavItem("Buscar", Icons.Default.Search, "tela_buscar"),
-        BottomNavItem("Pedidos", Icons.Default.List, "tela_historico_pedido"),
-        BottomNavItem("Carteira", Icons.Default.AccountBalanceWallet, "tela_carteira"),
-        BottomNavItem("Perfil", Icons.Default.Person, "tela_perfil")
+        BottomNavItem("Início", Icons.Default.Home, "tela_inicio_prestador"),
+        BottomNavItem("Serviços", Icons.Default.Work, "tela_servicos"),
+        BottomNavItem("Histórico", Icons.Default.History, "tela_historico"),
+        BottomNavItem("Perfil", Icons.Default.Person, "tela_perfil_prestador")
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp), // flutua e não encosta nas bordas
+            .padding(start = 18.dp, end = 18.dp, bottom = 18.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
+                .height(64.dp)
                 .shadow(
-                    elevation = 10.dp,
-                    shape = RoundedCornerShape(30.dp),
+                    elevation = 9.dp,
+                    shape = RoundedCornerShape(28.dp),
                     ambientColor = Color.Black.copy(alpha = 0.2f),
                     spotColor = Color.Black.copy(alpha = 0.2f)
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0x22000000),
+                    shape = RoundedCornerShape(28.dp)
                 ),
             color = Color.White,
-            shape = RoundedCornerShape(30.dp)
+            shape = RoundedCornerShape(28.dp)
         ) {
-            val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+            val currentRoute =
+                navController.currentBackStackEntryAsState().value?.destination?.route
 
             Row(
                 modifier = Modifier

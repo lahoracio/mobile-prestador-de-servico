@@ -36,11 +36,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun TelaCNH(
     navController: NavController,
-    perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    perfilViewModel: PerfilViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel
 ) {
     val context = LocalContext.current
     val viewModel: CNHViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
     val cnhValidada by viewModel.cnhValidada.collectAsState()
     val scope = rememberCoroutineScope()
@@ -54,9 +54,8 @@ fun TelaCNH(
             perfilViewModel.marcarComoValidado("CNH com EAR")
             prestadorViewModel.marcarCnhCadastrada() // Marca CNH como cadastrada
             kotlinx.coroutines.delay(1500) // Aguarda 1.5s para mostrar a mensagem
-            navController.navigate("tela_completar_perfil_prestador") {
-                popUpTo("tela_cnh") { inclusive = true }
-            }
+            // Apenas volta para a tela anterior
+            navController.popBackStack()
             // Reseta o estado
             viewModel.resetCnhValidada()
             viewModel.setMensagem("")
@@ -348,8 +347,9 @@ fun TelaCNH(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewTelaCNH() {
-    TelaCNH(navController = rememberNavController())
-}
+// Preview comentado pois requer PrestadorViewModel
+// @Preview(showBackground = true)
+// @Composable
+// fun PreviewTelaCNH() {
+//     TelaCNH(navController = rememberNavController())
+// }

@@ -1,7 +1,10 @@
 package com.exemple.facilita.model
 
+import androidx.compose.ui.graphics.vector.ImageVector
+
 data class BottomNavItem(
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: ImageVector,
     val route: String
 )
+

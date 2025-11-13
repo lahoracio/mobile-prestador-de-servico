@@ -1,7 +1,6 @@
 package com.exemple.facilita.screens
 
 import android.widget.Toast
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,17 +41,14 @@ import kotlinx.coroutines.withContext
 @Composable
 fun TelaDocumentos(
     navController: NavController,
-    perfilViewModel: PerfilViewModel = viewModel()
+    prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = viewModel()
 
     // Estados para rastrear o que foi cadastrado
     var rgCadastrado by remember { mutableStateOf(false) }
     var cpfCadastrado by remember { mutableStateOf(false) }
-    val cnhCadastrada by prestadorViewModel.cnhCadastrada.collectAsState()
-    val veiculoCadastrado by prestadorViewModel.veiculoCadastrado.collectAsState()
 
     var tipoDocumento by remember { mutableStateOf("") }
     var numeroDocumento by remember { mutableStateOf("") }
@@ -145,22 +141,21 @@ fun TelaDocumentos(
 
     fun finalizarCadastro() {
         prestadorViewModel.marcarDocumentoCadastrado()
-        navController.navigate("tela_completar_perfil_prestador") {
-            popUpTo("tela_documentos") { inclusive = true }
-        }
+        // Apenas volta para a tela anterior (TelaCompletarPerfilPrestador)
+        navController.popBackStack()
     }
 
-    // Verificar se todos os documentos foram cadastrados
-    val todosCadastrados = (rgCadastrado || cpfCadastrado) && cnhCadastrada && veiculoCadastrado
+    // Verificar se CPF ou RG foi cadastrado
+    val documentoCadastradoLocal = rgCadastrado || cpfCadastrado
 
     Scaffold(
-        containerColor = Color(0xFF0A0E27),
+        containerColor = Color(0xFFE6E6E6),
         topBar = {
             TopAppBar(
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color(0xFF015B2B))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -168,11 +163,7 @@ fun TelaDocumentos(
         }
     ) { padding ->
         Box(
-            modifier = Modifier.fillMaxSize().background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF0D1B2A))
-                )
-            ).padding(padding)
+            modifier = Modifier.fillMaxSize().background(Color(0xFFE6E6E6)).padding(padding)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -182,8 +173,8 @@ fun TelaDocumentos(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Box(
-                    modifier = Modifier.size(100.dp).shadow(20.dp, CircleShape).background(
-                        brush = Brush.radialGradient(colors = listOf(Color(0xFF00FF87), Color(0xFF00D9FF))),
+                    modifier = Modifier.size(100.dp).shadow(8.dp, CircleShape).background(
+                        brush = Brush.radialGradient(colors = listOf(Color(0xFF019D31), Color(0xFF015B2B))),
                         shape = CircleShape
                     ),
                     contentAlignment = Alignment.Center
@@ -192,84 +183,63 @@ fun TelaDocumentos(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(text = "Cadastre seus Documentos", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.White, textAlign = TextAlign.Center)
+                Text(text = "Cadastre seu Documento", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF015B2B), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Complete todos os documentos necessários", fontSize = 14.sp, color = Color(0xFF8A8FA8), textAlign = TextAlign.Center)
+                Text(text = "Escolha entre CPF ou RG", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Grid de 4 cards (2x2)
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CardDocumento(
-                            titulo = "CPF", descricao = "Cadastro Pessoa Física", icon = Icons.Default.Person,
-                            isCadastrado = cpfCadastrado,
-                            onClick = {
-                                if (!cpfCadastrado && !rgCadastrado) {
-                                    tipoDocumento = "CPF"
-                                    mostrarDialogSelecao = true
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        CardDocumento(
-                            titulo = "RG", descricao = "Registro Geral", icon = Icons.Default.CreditCard,
-                            isCadastrado = rgCadastrado,
-                            onClick = {
-                                if (!rgCadastrado && !cpfCadastrado) {
-                                    tipoDocumento = "RG"
-                                    mostrarDialogSelecao = true
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CardDocumento(
-                            titulo = "CNH", descricao = "Carteira Habilitação", icon = Icons.Default.Badge,
-                            isCadastrado = cnhCadastrada,
-                            onClick = {
-                                if (!cnhCadastrada) {
-                                    navController.navigate("tela_cnh")
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        CardDocumento(
-                            titulo = "Veículo", descricao = "Informações Veículo", icon = Icons.Default.DirectionsCar,
-                            isCadastrado = veiculoCadastrado,
-                            onClick = {
-                                if (!veiculoCadastrado) {
-                                    navController.navigate("tela_tipo_veiculo")
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                // Apenas 2 cards (CPF e RG) lado a lado
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    CardDocumento(
+                        titulo = "CPF",
+                        descricao = "Cadastro Pessoa Física",
+                        icon = Icons.Default.Person,
+                        isCadastrado = cpfCadastrado,
+                        onClick = {
+                            if (!cpfCadastrado && !rgCadastrado) {
+                                tipoDocumento = "CPF"
+                                mostrarDialogSelecao = true
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CardDocumento(
+                        titulo = "RG",
+                        descricao = "Registro Geral",
+                        icon = Icons.Default.CreditCard,
+                        isCadastrado = rgCadastrado,
+                        onClick = {
+                            if (!rgCadastrado && !cpfCadastrado) {
+                                tipoDocumento = "RG"
+                                mostrarDialogSelecao = true
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Botão Finalizar (só aparece quando todos estão cadastrados)
-                if (todosCadastrados) {
+                // Botão Finalizar (só aparece quando CPF ou RG está cadastrado)
+                if (documentoCadastradoLocal) {
                     Button(
                         onClick = { finalizarCadastro() },
-                        modifier = Modifier.fillMaxWidth().height(56.dp).shadow(12.dp, RoundedCornerShape(28.dp)),
+                        modifier = Modifier.fillMaxWidth().height(56.dp).shadow(8.dp, RoundedCornerShape(28.dp)),
                         shape = RoundedCornerShape(28.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                         contentPadding = PaddingValues()
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize().background(
-                                brush = Brush.horizontalGradient(colors = listOf(Color(0xFF00FF87), Color(0xFF00D9FF))),
+                                brush = Brush.horizontalGradient(colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))),
                                 shape = RoundedCornerShape(28.dp)
                             ),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF0A0E27), modifier = Modifier.size(24.dp))
+                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "Finalizar Cadastro", color = Color(0xFF0A0E27), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Continuar", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -283,30 +253,30 @@ fun TelaDocumentos(
         if (mostrarDialogSelecao) {
             AlertDialog(
                 onDismissRequest = { mostrarDialogSelecao = false },
-                containerColor = Color(0xFF1A1F3A),
+                containerColor = Color.White,
                 title = {
-                    Text("Cadastrar $tipoDocumento", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Text("Cadastrar $tipoDocumento", color = Color(0xFF015B2B), fontWeight = FontWeight.Bold, fontSize = 22.sp)
                 },
                 text = {
                     Column {
-                        Text("Digite o número do $tipoDocumento", color = Color(0xFF8A8FA8), fontSize = 14.sp)
+                        Text("Digite o número do $tipoDocumento", color = Color.Gray, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         OutlinedTextField(
                             value = numeroDocumento,
                             onValueChange = { numeroDocumento = it },
-                            label = { Text("Número", color = Color(0xFF8A8FA8)) },
-                            placeholder = { Text(if (tipoDocumento == "CPF") "000.000.000-00" else "00.000.000-0", color = Color(0xFF4A4F68)) },
+                            label = { Text("Número", color = Color.Gray) },
+                            placeholder = { Text(if (tipoDocumento == "CPF") "000.000.000-00" else "00.000.000-0", color = Color.LightGray) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF00FF87),
-                                unfocusedBorderColor = Color(0xFF2A2F48),
-                                focusedLabelColor = Color(0xFF00FF87),
-                                cursorColor = Color(0xFF00FF87),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color(0xFFCCCCCC),
-                                focusedContainerColor = Color(0xFF0A0E27),
-                                unfocusedContainerColor = Color(0xFF0A0E27)
+                                focusedBorderColor = Color(0xFF019D31),
+                                unfocusedBorderColor = Color.LightGray,
+                                focusedLabelColor = Color(0xFF019D31),
+                                cursorColor = Color(0xFF019D31),
+                                focusedTextColor = Color(0xFF015B2B),
+                                unfocusedTextColor = Color.DarkGray,
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(12.dp)
                         )
@@ -314,7 +284,7 @@ fun TelaDocumentos(
                         Text(
                             text = if (tipoDocumento == "CPF") "11 dígitos" else "Mínimo 7 dígitos",
                             fontSize = 12.sp,
-                            color = Color(0xFF8A8FA8)
+                            color = Color.Gray
                         )
                     }
                 },
@@ -329,9 +299,9 @@ fun TelaDocumentos(
                         Box(
                             modifier = Modifier.fillMaxSize().background(
                                 brush = if (isLoading || numeroDocumento.isEmpty()) {
-                                    Brush.horizontalGradient(colors = listOf(Color(0xFF2A2F48), Color(0xFF3A3F58)))
+                                    Brush.horizontalGradient(colors = listOf(Color.LightGray, Color.LightGray))
                                 } else {
-                                    Brush.horizontalGradient(colors = listOf(Color(0xFF00FF87), Color(0xFF00D9FF)))
+                                    Brush.horizontalGradient(colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A)))
                                 },
                                 shape = RoundedCornerShape(24.dp)
                             ).padding(horizontal = 24.dp),
@@ -340,7 +310,7 @@ fun TelaDocumentos(
                             if (isLoading) {
                                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                             } else {
-                                Text("Cadastrar", color = if (numeroDocumento.isEmpty()) Color(0xFF8A8FA8) else Color(0xFF0A0E27), fontWeight = FontWeight.Bold)
+                                Text("Cadastrar", color = if (numeroDocumento.isEmpty()) Color.Gray else Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -351,7 +321,7 @@ fun TelaDocumentos(
                         numeroDocumento = ""
                         tipoDocumento = ""
                     }) {
-                        Text("Cancelar", color = Color(0xFF8A8FA8))
+                        Text("Cancelar", color = Color.Gray)
                     }
                 }
             )
@@ -380,16 +350,16 @@ fun CardDocumento(
             .clickable(enabled = !isCadastrado) { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isCadastrado) Color(0xFF1A3A2A) else Color(0xFF15182B)
+            containerColor = if (isCadastrado) Color(0xFFE8F5E9) else Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isCadastrado) 8.dp else 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isCadastrado) 6.dp else 2.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxSize().then(
                 if (isCadastrado) {
                     Modifier.border(
                         width = 2.dp,
-                        brush = Brush.linearGradient(colors = listOf(Color(0xFF00FF87), Color(0xFF00B94A))),
+                        brush = Brush.linearGradient(colors = listOf(Color(0xFF019D31), Color(0xFF00B94A))),
                         shape = RoundedCornerShape(20.dp)
                     )
                 } else Modifier
@@ -403,9 +373,9 @@ fun CardDocumento(
                 Box(
                     modifier = Modifier.size(50.dp).background(
                         brush = if (isCadastrado) {
-                            Brush.radialGradient(colors = listOf(Color(0xFF00FF87).copy(alpha = 0.4f), Color(0xFF00B94A).copy(alpha = 0.2f)))
+                            Brush.radialGradient(colors = listOf(Color(0xFF019D31).copy(alpha = 0.3f), Color(0xFF00B94A).copy(alpha = 0.1f)))
                         } else {
-                            Brush.radialGradient(colors = listOf(Color(0xFF2A2F48).copy(alpha = 0.3f), Color.Transparent))
+                            Brush.radialGradient(colors = listOf(Color(0xFFE0E0E0).copy(alpha = 0.5f), Color.Transparent))
                         },
                         shape = CircleShape
                     ),
@@ -414,7 +384,7 @@ fun CardDocumento(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (isCadastrado) Color(0xFF00FF87) else Color(0xFF8A8FA8),
+                        tint = if (isCadastrado) Color(0xFF019D31) else Color.Gray,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -425,7 +395,7 @@ fun CardDocumento(
                     text = titulo,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = if (isCadastrado) Color(0xFF00FF87) else Color.White
+                    color = if (isCadastrado) Color(0xFF015B2B) else Color.DarkGray
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -433,7 +403,7 @@ fun CardDocumento(
                 Text(
                     text = descricao,
                     fontSize = 10.sp,
-                    color = if (isCadastrado) Color(0xFF8A8FA8) else Color(0xFF4A4F68),
+                    color = if (isCadastrado) Color(0xFF019D31) else Color.Gray,
                     textAlign = TextAlign.Center
                 )
 
@@ -443,14 +413,14 @@ fun CardDocumento(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Cadastrado",
-                            tint = Color(0xFF00FF87),
+                            tint = Color(0xFF00B94A),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Cadastrado",
                             fontSize = 11.sp,
-                            color = Color(0xFF00FF87),
+                            color = Color(0xFF00B94A),
                             fontWeight = FontWeight.Bold
                         )
                     }

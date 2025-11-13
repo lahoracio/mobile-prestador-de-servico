@@ -1,16 +1,16 @@
 package com.exemple.facilita.model
 
-data class ModalidadeRequest(
-    val modalidades: List<ModalidadeItem>
+data class Modalidade(
+    val tipo: String, // MOTO, CARRO, BICICLETA
+    val modelo_veiculo: String,
+    val ano_veiculo: Int,
+    val possui_seguro: Boolean,
+    val compartimento_adequado: Boolean,
+    val revisao_em_dia: Boolean,
+    val antecedentes_criminais: Boolean
 )
 
-data class ModalidadeItem(
-    val tipo: String,
-    val modelo_veiculo: String? = null,
-    val ano_veiculo: Int? = null,
-    val possui_seguro: Boolean? = null,
-    val compartimento_adequado: Boolean? = null,
-    val revisao_em_dia: Boolean? = null,
-    val antecedentes_criminais: Boolean? = null
+data class ModalidadeRequest(
+    val modalidades: List<Modalidade>
 )
 

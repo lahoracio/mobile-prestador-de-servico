@@ -2,7 +2,7 @@ package com.exemple.facilita.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.exemple.facilita.model.ModalidadeItem
+import com.exemple.facilita.model.Modalidade
 import com.exemple.facilita.model.ModalidadeRequest
 import com.exemple.facilita.service.RetrofitFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +27,7 @@ class ModalidadeViewModel : ViewModel() {
 
     fun cadastrarModalidades(
         token: String,
-        modalidades: List<ModalidadeItem>
+        modalidades: List<Modalidade>
     ) {
         viewModelScope.launch {
             try {

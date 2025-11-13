@@ -11,8 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Stable
@@ -55,7 +54,7 @@ data class Solicitacao(
 )
 
 @Composable
-fun TelaInicioPrestador() {
+fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
     val context = LocalContext.current
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -100,12 +99,18 @@ fun TelaInicioPrestador() {
     val textColorPrimary = Color(0xFF212121)
     val textColorSecondary = Color(0xFF757575)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-            .padding(vertical = 12.dp)
-    ) {
+    Scaffold(
+        containerColor = backgroundColor,
+        bottomBar = { com.exemple.facilita.components.BottomNavBar(navController = navController) }
+    ) { paddingValues ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundColor)
+                .padding(paddingValues)
+                .padding(vertical = 12.dp)
+        ) {
         // 🔹 Header
         Row(
             modifier = Modifier
@@ -214,7 +219,8 @@ fun TelaInicioPrestador() {
                 }
             }
         }
-    }
+        } // Fecha Column
+    } // Fecha Scaffold
 }
 
 @Composable
@@ -494,5 +500,5 @@ fun ServicoAceitoAnimation(onDismiss: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewTelaInicioPrestador() {
-    TelaInicioPrestador()
+    TelaInicioPrestador(navController = androidx.navigation.compose.rememberNavController())
 }

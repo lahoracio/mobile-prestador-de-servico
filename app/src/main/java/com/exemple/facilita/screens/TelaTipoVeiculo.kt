@@ -20,16 +20,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelaTipoVeiculo(navController: NavController) {
+fun TelaTipoVeiculo(
+    navController: NavController,
+    prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel
+) {
     var motoSelecionado by remember { mutableStateOf(false) }
     var carroSelecionado by remember { mutableStateOf(false) }
     var bicicletaSelecionado by remember { mutableStateOf(false) }
@@ -226,8 +227,9 @@ fun TelaTipoVeiculo(navController: NavController) {
                     if (carroSelecionado) tiposSelecionados.add("CARRO")
                     if (bicicletaSelecionado) tiposSelecionados.add("BICICLETA")
 
+                    // Navega para a tela de informações do veículo
                     val tipos = tiposSelecionados.joinToString(",")
-                    navController.navigate("tela_veiculo/$tipos")
+                    navController.navigate("tela_informacoes_veiculo/$tipos")
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -375,9 +377,10 @@ fun CardVeiculoModerno(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun PreviewTelaTipoVeiculo() {
-    TelaTipoVeiculo(navController = rememberNavController())
-}
+// Preview comentado pois requer PrestadorViewModel
+// @Preview(showBackground = true, showSystemUi = true)
+// @Composable
+// fun PreviewTelaTipoVeiculo() {
+//     TelaTipoVeiculo(navController = rememberNavController())
+// }
 
