@@ -29,9 +29,24 @@ fun AppNavHost(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = "tela_login"
+        startDestination = "splash_screen"
     ) {
 
+        composable("splash_screen") {
+            SplashScreen(navController)
+        }
+
+        composable("tela_inicio1") {
+            TelaInicio1(navController)
+        }
+
+        composable("tela_inicio2") {
+            TelaInicio2(navController)
+        }
+
+        composable("tela_inicio3") {
+            TelaInicio3(navController)
+        }
 
         composable("tela_login") {
             TelaLogin(navController)
