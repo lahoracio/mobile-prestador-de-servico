@@ -40,4 +40,10 @@ interface UserService {
         @Body request: CriarPrestadorRequest
     ): Response<CriarPrestadorResponse>
 
+    @Headers("Content-Type: application/json")
+    @POST("v1/facilita/localizacao")
+    suspend fun criarLocalizacao(
+        @Body request: LocalizacaoRequest
+    ): Response<LocalizacaoResponse>
+
 }

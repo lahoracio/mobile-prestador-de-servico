@@ -42,8 +42,8 @@ fun TelaPermissaoLocalizacaoServico(navController: NavController) {
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            // GPS ativado, navegar para próxima tela
-            navController.navigate("tela_tipo_veiculo")
+            // GPS ativado, navegar para tela de completar perfil
+            navController.navigate("tela_completar_perfil_prestador")
         } else {
             Toast.makeText(context, "GPS não ativado", Toast.LENGTH_SHORT).show()
         }
@@ -57,11 +57,11 @@ fun TelaPermissaoLocalizacaoServico(navController: NavController) {
         val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
 
         if (fineLocationGranted && coarseLocationGranted) {
-            // Após aceitar permissões, ativar GPS e navegar
+            // Após aceitar permissões, ativar GPS e navegar para completar perfil
             ativarGPS(
                 context = context,
                 locationSettingsClient = locationSettingsClient,
-                onGPSAtivado = { navController.navigate("tela_tipo_veiculo") },
+                onGPSAtivado = { navController.navigate("tela_completar_perfil_prestador") },
                 launcher = locationLauncher
             )
         } else {

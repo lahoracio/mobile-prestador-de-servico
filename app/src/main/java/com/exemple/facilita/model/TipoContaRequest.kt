@@ -2,7 +2,7 @@ package com.exemple.facilita.model
 
 // Request para criar prestador
 data class CriarPrestadorRequest(
-    val localizacao: List<Double> // [latitude, longitude]
+    val localizacao: List<Int> // Lista de IDs de localização [id_endereco_mora, id_regiao_atua]
 )
 
 // Response da criação do prestador

@@ -40,6 +40,7 @@ fun TelaCNH(
 ) {
     val context = LocalContext.current
     val viewModel: CNHViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val mensagem by viewModel.mensagem.collectAsState()
     val cnhValidada by viewModel.cnhValidada.collectAsState()
     val scope = rememberCoroutineScope()
@@ -51,6 +52,7 @@ fun TelaCNH(
     LaunchedEffect(cnhValidada) {
         if (cnhValidada) {
             perfilViewModel.marcarComoValidado("CNH com EAR")
+            prestadorViewModel.marcarCnhCadastrada() // Marca CNH como cadastrada
             kotlinx.coroutines.delay(1500) // Aguarda 1.5s para mostrar a mensagem
             navController.navigate("tela_completar_perfil_prestador") {
                 popUpTo("tela_cnh") { inclusive = true }

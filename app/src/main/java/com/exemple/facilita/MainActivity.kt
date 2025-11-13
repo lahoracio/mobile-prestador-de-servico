@@ -104,10 +104,16 @@ fun AppNavHost(navController: NavHostController) {
             TelaDocumentos(navController, perfilViewModel)
         }
 
-        composable("tela_veiculo/{tiposVeiculo}") { backStackEntry ->
-            val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
-            TelaInformacoesVeiculo(navController, tiposVeiculo, perfilViewModel)
-        }
+        // TODO: Descomentar após corrigir TelaInformacoesVeiculo.kt (remover código duplicado)
+        // composable("tela_veiculo/{tiposVeiculo}") { backStackEntry ->
+        //     val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
+        //     TelaInformacoesVeiculo(navController, tiposVeiculo, perfilViewModel)
+        // }
+
+        // composable("tela_tipo_veiculo/{tiposVeiculo}") { backStackEntry ->
+        //     val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
+        //     TelaInformacoesVeiculo(navController, tiposVeiculo, perfilViewModel)
+        // }
 
     }
 }
