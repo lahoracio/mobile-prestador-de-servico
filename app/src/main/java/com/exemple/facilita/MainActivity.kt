@@ -117,6 +117,32 @@ fun AppNavHost(navController: NavHostController) {
         composable("tela_tipo_veiculo") {
             TelaTipoVeiculo(navController, prestadorViewModel)
         }
+        
+        // Rotas da Carteira
+        composable("tela_carteira") {
+            TelaCarteira(navController)
+        }
+        
+        composable("tela_adicionar_dinheiro") {
+            TelaAdicionarDinheiro(navController)
+        }
+        
+        composable("tela_sacar_dinheiro") {
+            TelaSacarDinheiro(navController)
+        }
+        
+        composable("tela_contas_bancarias") {
+            TelaContasBancarias(navController)
+        }
+        
+        composable("tela_adicionar_conta") {
+            TelaAdicionarConta(navController)
+        }
+
+        composable("tela_qrcode_pix/{valor}") { backStackEntry ->
+            val valor = backStackEntry.arguments?.getString("valor")?.toDoubleOrNull() ?: 0.0
+            TelaQRCodePix(navController, valor)
+        }
 
         composable("tela_informacoes_veiculo/{tiposVeiculo}") { backStackEntry ->
             val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
