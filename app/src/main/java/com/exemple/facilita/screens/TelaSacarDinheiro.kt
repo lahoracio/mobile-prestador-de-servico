@@ -194,7 +194,15 @@ fun TelaSacarDinheiro(navController: NavController, usuarioId: String = "user123
                     onClick = {
                         val v = valor.replace(",", ".").toDoubleOrNull()
                         if (v != null && v > 0 && contaSelecionada != null) {
-                            viewModel.solicitarSaque(v, contaSelecionada!!, "dummy_token")
+                            viewModel.solicitarSaque(
+                                valor = v,
+                                contaBancariaId = contaSelecionada!!,
+                                token = "dummy_token",
+                                onSuccess = {
+                                    // Sucesso - volta para a tela anterior
+                                    navController.popBackStack()
+                                }
+                            )
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),

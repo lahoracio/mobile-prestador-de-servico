@@ -778,14 +778,13 @@ fun SuccessDialog(
 ) {
     var visible by remember { mutableStateOf(true) }
 
-    LaunchedEffect(visible) {
-        if (visible) {
-            delay(2000)
-            visible = false
-            delay(300)
-            onNavigate()
-            onDismiss()
-        }
+    LaunchedEffect(Unit) {
+        delay(2000) // Mostra o dialog por 2 segundos
+        visible = false // Inicia animação de saída
+        delay(300) // Aguarda animação de saída
+        onDismiss() // Fecha o dialog
+        delay(100) // Pequeno delay
+        onNavigate() // Navega para tela de detalhes
     }
 
     Dialog(
