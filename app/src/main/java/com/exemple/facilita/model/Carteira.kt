@@ -40,9 +40,11 @@ enum class TipoTransacao {
     DEPOSITO,
     SAQUE,
     PAGAMENTO,
+    PAGAMENTO_SERVICO,
     RECEBIMENTO,
     ESTORNO,
-    TAXA
+    TAXA,
+    CASHBACK
 }
 
 enum class StatusTransacao {
@@ -63,5 +65,21 @@ data class SolicitacaoDeposito(
     val valor: Double,
     val metodoPagamento: String = "PIX",
     val comprovante: String? = null
+)
+
+// Modelo para exibição de saldo na UI
+data class SaldoCarteira(
+    val saldoDisponivel: Double = 0.0,
+    val saldoBloqueado: Double = 0.0
+)
+
+// Modelo alternativo para transações (compatível com a UI)
+data class TransacaoCarteira(
+    val id: String = "",
+    val tipo: TipoTransacao = TipoTransacao.DEPOSITO,
+    val valor: Double = 0.0,
+    val data: String = "",
+    val descricao: String = "",
+    val status: StatusTransacao = StatusTransacao.PENDENTE
 )
 

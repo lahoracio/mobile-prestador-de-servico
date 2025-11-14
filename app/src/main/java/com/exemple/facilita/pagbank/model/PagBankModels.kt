@@ -65,7 +65,21 @@ data class PagBankPaymentMethod(
     @SerializedName("installments") val installments: Int? = null,
     @SerializedName("capture") val capture: Boolean? = true,
     @SerializedName("soft_descriptor") val softDescriptor: String? = null,
-    @SerializedName("card") val card: PagBankCard? = null
+    @SerializedName("card") val card: PagBankCard? = null,
+    @SerializedName("pix") val pix: PagBankPix? = null
+)
+
+// ========== PIX ==========
+data class PagBankPix(
+    @SerializedName("qr_code") val qrCode: String? = null,
+    @SerializedName("qr_code_base64") val qrCodeBase64: String? = null,
+    @SerializedName("expiration_date") val expirationDate: String? = null,
+    @SerializedName("holder") val holder: PagBankPixHolder? = null
+)
+
+data class PagBankPixHolder(
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("tax_id") val taxId: String? = null
 )
 
 data class PagBankCard(
@@ -79,7 +93,7 @@ data class PagBankCard(
 
 data class PagBankCardHolder(
     @SerializedName("name") val name: String,
-    @SerializedName("tax_id") val taxId: String
+    @SerializedName("tax_id") val taxId: String? = null
 )
 
 // ========== QR CODE PIX ==========
@@ -128,7 +142,7 @@ data class PagBankBank(
 data class PagBankBalance(
     @SerializedName("available") val available: PagBankAmount,
     @SerializedName("blocked") val blocked: PagBankAmount,
-    @SerializedName("total") val total: PagBankAmount
+    @SerializedName("currency") val currency: String = "BRL"
 )
 
 // ========== WEBHOOK ==========
