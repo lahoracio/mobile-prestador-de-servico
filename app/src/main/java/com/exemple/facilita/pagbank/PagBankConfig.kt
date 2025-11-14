@@ -19,8 +19,18 @@ object PagBankConfig {
     const val IS_SANDBOX = true
 
     // ========== CREDENCIAIS ==========
-    // ATENÇÃO: Em produção, use variáveis de ambiente ou BuildConfig
-    // Obtenha suas credenciais em: https://dev.pagseguro.uol.com.br/
+    //
+    // ⚠️  CONFIGURE SEU TOKEN AQUI ⚠️
+    //
+    // 1. Acesse: https://dev.pagseguro.uol.com.br/
+    // 2. Faça login ou crie uma conta
+    // 3. Vá em: Minha Conta → Credenciais → Sandbox
+    // 4. Copie o TOKEN e cole abaixo (substitua "SEU_TOKEN_SANDBOX_AQUI")
+    //
+    // Exemplo: const val TOKEN_SANDBOX = "ABC123DEF456GHI789..."
+    //
+    // Veja instruções detalhadas no arquivo: COMO_CONFIGURAR_PAGBANK_TOKEN.md
+    //
     const val TOKEN_SANDBOX = "SEU_TOKEN_SANDBOX_AQUI"
     const val PUBLIC_KEY_SANDBOX = "SUA_PUBLIC_KEY_AQUI"
 

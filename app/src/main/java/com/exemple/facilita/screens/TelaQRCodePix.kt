@@ -207,16 +207,18 @@ fun TelaQRCodePix(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // QR Code Image
-                        qrCodeData?.links?.find { it.media == "image/png" }?.href?.let { qrUrl ->
-                            Box(
-                                modifier = Modifier
-                                    .size(280.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color.White)
-                                    .border(2.dp, Color(0xFF019D31), RoundedCornerShape(16.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
+                        // QR Code Image ou Placeholder
+                        val qrUrl = qrCodeData?.links?.find { it.media == "image/png" }?.href
+
+                        Box(
+                            modifier = Modifier
+                                .size(280.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                                .border(2.dp, Color(0xFF019D31), RoundedCornerShape(16.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (qrUrl != null) {
                                 Image(
                                     painter = rememberAsyncImagePainter(qrUrl),
                                     contentDescription = "QR Code PIX",
@@ -224,16 +226,45 @@ fun TelaQRCodePix(
                                         .size(260.dp)
                                         .padding(8.dp)
                                 )
-                            }
-                        } ?: run {
-                            // Placeholder enquanto carrega
-                            Box(
-                                modifier = Modifier
-                                    .size(280.dp)
-                                    .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(color = Color(0xFF019D31))
+                            } else if (pixCopiaCola != null) {
+                                // Mostrar ícone de QR Code como placeholder
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.QrCode,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(120.dp),
+                                        tint = Color(0xFF019D31)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "QR Code Gerado",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF019D31)
+                                    )
+                                    Text(
+                                        "Use o código abaixo",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
+                            } else {
+                                // Carregando
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(color = Color(0xFF019D31))
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        "Gerando QR Code...",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
                             }
                         }
 
@@ -305,6 +336,64 @@ fun TelaQRCodePix(
                     }
                 }
 
+                // Botão Simular Pagamento (Modo Simulado)
+                if (statusPagamento != "PAGO" && qrCodeData != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.SimCard,
+                                null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "Modo Simulado Ativo",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF9800)
+                            )
+                            Text(
+                                "Clique no botão abaixo para simular que você já pagou o PIX",
+                                fontSize = 14.sp,
+                                color = Color(0xFF424242),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    // Confirmar pagamento simulado
+                                    qrCodeData?.id?.let { transacaoId ->
+                                        viewModel.confirmarDepositoSimulado(transacaoId, valor)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFF9800)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "✅ Simular Pagamento Realizado",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Instruções
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -325,7 +414,7 @@ fun TelaQRCodePix(
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                "Como pagar",
+                                "Como funciona (Modo Simulado)",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF2196F3)
@@ -335,11 +424,11 @@ fun TelaQRCodePix(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         listOf(
-                            "1. Abra o app do seu banco",
-                            "2. Escolha pagar com PIX",
-                            "3. Escaneie o QR Code ou cole o código",
-                            "4. Confirme o pagamento",
-                            "5. Aguarde a confirmação automática"
+                            "1. Este é um QR Code simulado para testes",
+                            "2. Não é necessário pagar de verdade",
+                            "3. Clique no botão laranja acima",
+                            "4. O saldo será adicionado instantaneamente",
+                            "5. Use para testar o app sem dinheiro real"
                         ).forEach { instrucao ->
                             Text(
                                 instrucao,

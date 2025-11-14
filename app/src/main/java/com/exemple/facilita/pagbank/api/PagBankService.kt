@@ -55,6 +55,16 @@ interface PagBankService {
         @Path("chargeId") chargeId: String
     ): Response<PagBankCharge>
 
+    /**
+     * Cancela uma cobrança
+     * POST /charges/{chargeId}/cancel
+     */
+    @POST("charges/{chargeId}/cancel")
+    suspend fun cancelCharge(
+        @Header("Authorization") authorization: String,
+        @Path("chargeId") chargeId: String
+    ): Response<PagBankCharge>
+
     // ========== TRANSFERÊNCIAS ==========
 
     /**

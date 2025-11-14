@@ -59,7 +59,12 @@ fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    val token = TokenManager.obterTokenComBearer(context) ?: ""
+    val token = com.exemple.facilita.utils.TokenManager.obterTokenComBearer(context) ?: ""
+
+    // Obter nome real do usuário
+    val nomeUsuario = remember {
+        com.exemple.facilita.utils.TokenManager.obterNomeUsuario(context) ?: "Usuário"
+    }
 
     // 🔄 Buscar solicitações
     LaunchedEffect(Unit) {
@@ -121,7 +126,7 @@ fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Olá, Vithor",
+                    text = "Olá, $nomeUsuario",
                     fontWeight = FontWeight.Bold,
                     fontSize = 24.sp,
                     color = textColorPrimary
