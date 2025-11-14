@@ -48,3 +48,14 @@ data class Localizacao(
     val longitude: String
 )
 
+data class Solicitacao(
+    val id: Int,
+    val numero: Int,
+    val cliente: String,
+    val servico: String,
+    val distancia: String,
+    val horario: String,
+    val valor: String
+)
+
+

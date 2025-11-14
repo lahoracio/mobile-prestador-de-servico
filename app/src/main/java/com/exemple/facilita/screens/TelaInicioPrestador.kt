@@ -8,17 +8,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,41 +29,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import kotlinx.coroutines.delay
+import com.exemple.facilita.model.Solicitacao
 import com.exemple.facilita.service.ApiResponse
+import com.exemple.facilita.service.AceitarServicoApiResponse
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import kotlin.coroutines.resumeWithException
-
-
-
-@Stable
-data class Solicitacao(
-    val id: Int,
-    val numero: Int,
-    val cliente: String,
-    val servico: String,
-    val distancia: String,
-    val horario: String,
-    val valor: String
-)
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
     val context = LocalContext.current
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var animateHeader by remember { mutableStateOf(false) }
+    var animateBalance by remember { mutableStateOf(false) }
 
     val token = TokenManager.obterTokenComBearer(context) ?: ""
 
-    // 🔄 Buscar solicitações
+    // Animações de entrada
+    LaunchedEffect(Unit) {
+        delay(100)
+        animateHeader = true
+        delay(200)
+        animateBalance = true
+    }
+
+    // Buscar solicitações da API
     LaunchedEffect(Unit) {
         val service = RetrofitFactory.getServicoService()
         service.getServicosDisponiveis(token).enqueue(object : Callback<ApiResponse> {
@@ -79,418 +77,785 @@ fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
                             valor = "R$ ${servico.valor}"
                         )
                     }
-                } else {
-                    Toast.makeText(context, "Erro: ${response.code()}", Toast.LENGTH_SHORT).show()
                 }
                 isLoading = false
             }
 
             override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
-                Toast.makeText(context, "Erro de conexão: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Erro: ${t.message}", Toast.LENGTH_SHORT).show()
                 isLoading = false
             }
         })
     }
 
-    // Cores
-    val backgroundColor = Color(0xFFF5F7FA)
-    val primaryColor = Color(0xFF019D31)
-    val primaryColorDark = Color(0xFF007A25)
-    val textColorPrimary = Color(0xFF212121)
-    val textColorSecondary = Color(0xFF757575)
+    // Cores do tema - Verde profissional
+    val primaryGreen = Color(0xFF2E7D32) // Verde escuro
+    val secondaryGreen = Color(0xFF388E3C) // Verde médio
+    val accentGreen = Color(0xFF4CAF50) // Verde suave
+    val lightBg = Color(0xFFF5F5F5)
+    val cardBg = Color.White
+    val textPrimary = Color(0xFF212121)
+    val textSecondary = Color(0xFF757575)
+
+    // Animação de pulso para o saldo
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.03f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
 
     Scaffold(
-        containerColor = backgroundColor,
+        containerColor = lightBg,
         bottomBar = { com.exemple.facilita.components.BottomNavBar(navController = navController) }
     ) { paddingValues ->
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backgroundColor)
-                .padding(paddingValues)
-                .padding(vertical = 12.dp)
-        ) {
-        // 🔹 Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Olá, Vithor",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = textColorPrimary
-                )
-                Text(
-                    text = "Seu trabalho facilita vidas.",
-                    fontSize = 14.sp,
-                    color = textColorSecondary
-                )
-            }
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                IconButton(onClick = { /* notificações */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notificações",
-                        modifier = Modifier.size(24.dp),
-                        tint = textColorPrimary
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFFFAFAFA), Color(0xFFF5F5F5), Color(0xFFEEEEEE))
                     )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // 🔹 Card de saldo
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                )
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(primaryColor, primaryColorDark)
-                        )
-                    )
-                    .padding(16.dp)
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                Column {
-                    Text("Seu saldo", color = Color.White.copy(alpha = 0.9f), fontSize = 15.sp)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                // Header com animação
+                AnimatedVisibility(
+                    visible = animateHeader,
+                    enter = slideInVertically(
+                        initialOffsetY = { -100 },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                    ) + fadeIn()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Olá, Prestador 👋",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 28.sp,
+                                color = textPrimary,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Seu trabalho facilita vidas.",
+                                fontSize = 14.sp,
+                                color = textSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Indicador de notificações
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificações",
+                                tint = primaryGreen,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(Color(0xFFFF5252), CircleShape)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = (-4).dp, y = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Card de Saldo Compacto
+                AnimatedVisibility(
+                    visible = animateBalance,
+                    enter = slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                    ) + fadeIn()
+                ) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .graphicsLayer {
+                                scaleX = pulseScale
+                                scaleY = pulseScale
+                            },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            primaryGreen,
+                                            secondaryGreen,
+                                            accentGreen
+                                        ),
+                                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                        end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
+                                    )
+                                )
+                                .padding(20.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.12f),
+                                                Color.Transparent
+                                            )
+                                        ),
+                                        CircleShape
+                                    )
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 30.dp, y = (-30).dp)
+                            )
+
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = Color.White.copy(alpha = 0.9f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        "Saldo Disponível",
+                                        color = Color.White.copy(alpha = 0.95f),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Text(
+                                    text = "R$ 5.100,00",
+                                    color = Color.White,
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 0.5.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                            contentDescription = null,
+                                            tint = Color.White.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                "Hoje",
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                fontSize = 10.sp
+                                            )
+                                            Text(
+                                                "+R$ 320",
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color.White.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                "Serviços",
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                fontSize = 10.sp
+                                            )
+                                            Text(
+                                                "12",
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Seção de Solicitações
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
                         Text(
-                            text = "R$ 5.100,00",
-                            color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
+                            "Solicitações Disponíveis",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
+                            color = textPrimary
                         )
-                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            "${listaSolicitacoes.size} serviços aguardando",
+                            fontSize = 13.sp,
+                            color = textSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White)
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = "Ver extrato",
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier.size(18.dp)
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filtrar",
+                            tint = primaryGreen
                         )
                     }
                 }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            "Solicitações disponíveis",
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            color = textColorPrimary,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        when {
-            isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Carregando solicitações...")
-            }
-
-            listaSolicitacoes.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Nenhuma solicitação disponível no momento.")
-            }
-
-            else -> LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(listaSolicitacoes, key = { it.id }) { item ->
-                    SolicitacaoCard(solicitacao = item, token = token)
-                }
-            }
-        }
-        } // Fecha Column
-    } // Fecha Scaffold
-}
-
-@Composable
-fun SolicitacaoCard(solicitacao: Solicitacao, token: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val acceptColor = Color(0xFF019D31)
-    val rejectColor = Color(0xFFD32F2F)
-    val labelColor = Color(0xFF757575)
-    val valueColor = Color(0xFF212121)
-
-    var showSuccessAnimation by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-
-    // Usar um coroutine scope seguro para atualizações de estado
-    val coroutineScope = rememberCoroutineScope()
-
-    fun aceitarServico() {
-        if (isLoading) return
-
-        isLoading = true
-
-        coroutineScope.launch {
-            try {
-                // Fazer a chamada em background
-                val result = withContext(Dispatchers.IO) {
-                    try {
-                        val service = RetrofitFactory.getServicoService()
-                        val response = service.aceitarServico(token, solicitacao.id).execute()
-                        Result.success(response)
-                    } catch (e: Exception) {
-                        Result.failure<Response<ApiResponse>>(e)
-                    }
-                }
-
-                // Processar o resultado na main thread
+                // Lista de solicitações
                 when {
-                    result.isSuccess -> {
-                        val response = result.getOrNull()
-                        if (response?.isSuccessful == true) {
-                            showSuccessAnimation = true
-                            Toast.makeText(context, "Serviço aceito com sucesso!", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val errorCode = response?.code() ?: "Unknown"
-                            val errorBody = response?.errorBody()?.string() ?: "No error body"
-                            Toast.makeText(context, "Erro: $errorCode - $errorBody", Toast.LENGTH_LONG).show()
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    color = primaryGreen,
+                                    strokeWidth = 3.dp
+                                )
+                                Text(
+                                    "Buscando solicitações...",
+                                    color = textSecondary,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
-                    result.isFailure -> {
-                        val exception = result.exceptionOrNull()
-                        val errorMessage = when {
-                            exception is java.net.SocketTimeoutException -> "Timeout na conexão"
-                            exception is java.net.UnknownHostException -> "Sem conexão com a internet"
-                            exception != null -> "Erro: ${exception.message ?: exception.javaClass.simpleName}"
-                            else -> "Erro desconhecido"
+
+                    listaSolicitacoes.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Inbox,
+                                    contentDescription = null,
+                                    tint = textSecondary.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(80.dp)
+                                )
+                                Text(
+                                    "Nenhuma solicitação disponível",
+                                    color = textPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    "Aguarde novas oportunidades de trabalho",
+                                    color = textSecondary,
+                                    fontSize = 14.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(listaSolicitacoes, key = { it.id }) { solicitacao ->
+                                SolicitacaoCardPremium(
+                                    solicitacao = solicitacao,
+                                    token = token,
+                                    primaryColor = primaryGreen,
+                                    cardBg = cardBg,
+                                    textSecondary = textSecondary,
+                                    navController = navController
+                                )
+                            }
+                        }
                     }
                 }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Erro inesperado: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                isLoading = false
             }
         }
     }
+}
 
-    // Versão alternativa mais simples se a anterior não funcionar
-    fun aceitarServicoAlternativo() {
+@Composable
+fun SolicitacaoCardPremium(
+    solicitacao: Solicitacao,
+    token: String,
+    primaryColor: Color,
+    cardBg: Color,
+    textSecondary: Color,
+    navController: androidx.navigation.NavController
+) {
+    val context = LocalContext.current
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
+
+    fun aceitarServico() {
         if (isLoading) return
-
         isLoading = true
 
         val service = RetrofitFactory.getServicoService()
-        service.aceitarServico(token, solicitacao.id).enqueue(object : Callback<ApiResponse> {
-            override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
+        service.aceitarServico(token, solicitacao.id).enqueue(object : Callback<AceitarServicoApiResponse> {
+            override fun onResponse(call: Call<AceitarServicoApiResponse>, response: Response<AceitarServicoApiResponse>) {
                 isLoading = false
                 if (response.isSuccessful) {
-                    showSuccessAnimation = true
-                    Toast.makeText(context, "Serviço aceito com sucesso!", Toast.LENGTH_SHORT).show()
+                    showSuccessDialog = true
                 } else {
-                    val errorMsg = when (response.code()) {
-                        400 -> "Requisição inválida"
-                        401 -> "Não autorizado"
-                        404 -> "Serviço não encontrado"
-                        409 -> "Serviço já foi aceito"
-                        500 -> "Erro interno do servidor"
-                        else -> "Erro: ${response.code()}"
-                    }
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Erro ao aceitar: ${response.code()}", Toast.LENGTH_SHORT).show()
                 }
             }
 
-            override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
+            override fun onFailure(call: Call<AceitarServicoApiResponse>, t: Throwable) {
                 isLoading = false
-                val errorMsg = when (t) {
-                    is java.net.SocketTimeoutException -> "Timeout na conexão"
-                    is java.net.UnknownHostException -> "Sem conexão com a internet"
-                    else -> "Erro de conexão: ${t.message ?: "Verifique sua internet"}"
-                }
-                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Erro de conexão: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
     Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, Color(0xFFEAEAEA))
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg.copy(alpha = 0.9f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("#${solicitacao.numero}", fontWeight = FontWeight.Bold, color = valueColor)
-                Text(solicitacao.cliente, color = valueColor, fontWeight = FontWeight.Medium)
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            Text("${solicitacao.servico} • ${solicitacao.distancia}", fontSize = 13.sp, color = labelColor)
-
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("🕒 ${solicitacao.horario}", fontSize = 13.sp, color = labelColor)
-                Text(solicitacao.valor, fontWeight = FontWeight.Bold, color = valueColor, fontSize = 15.sp)
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = {
-                        // Tente usar a versão alternativa primeiro
-                        aceitarServicoAlternativo()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLoading) Color.Gray else acceptColor
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
+        Box {
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.1f),
+                                Color.Transparent
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Aceitando...", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    } else {
-                        Text("Aceitar", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        ),
+                        CircleShape
+                    )
+                    .align(Alignment.TopEnd)
+                    .offset(x = 40.dp, y = (-40).dp)
+            )
+
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(primaryColor, CircleShape)
+                        )
+                        Text(
+                            "#${solicitacao.numero}",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF212121),
+                            fontSize = 17.sp
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = primaryColor.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            solicitacao.valor,
+                            color = primaryColor,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
                     }
                 }
 
-                Button(
-                    onClick = {
-                        if (!isLoading) {
-                            Toast.makeText(context, "Serviço recusado!", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLoading) Color.Gray else rejectColor
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp),
-                    enabled = !isLoading
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Recusar", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(primaryColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text("Cliente", color = textSecondary, fontSize = 12.sp)
+                        Text(
+                            solicitacao.cliente,
+                            color = Color(0xFF212121),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(primaryColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Serviço", color = textSecondary, fontSize = 12.sp)
+                        Text(
+                            solicitacao.servico,
+                            color = Color(0xFF212121),
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Column {
+                            Text("Local", color = textSecondary, fontSize = 11.sp)
+                            Text(
+                                solicitacao.distancia,
+                                color = Color(0xFF212121),
+                                fontSize = 13.sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Column {
+                            Text("Horário", color = textSecondary, fontSize = 11.sp)
+                            Text(solicitacao.horario, color = Color(0xFF212121), fontSize = 13.sp)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    textSecondary.copy(alpha = 0.2f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { aceitarServico() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor,
+                            disabledContainerColor = Color.Gray
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        enabled = !isLoading,
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 10.dp
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text("Aceitar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            if (!isLoading) {
+                                Toast.makeText(context, "Serviço recusado", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        enabled = !isLoading,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFFF5252)
+                        ),
+                        border = BorderStroke(2.dp, Color(0xFFFF5252))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text("Recusar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Animação de sucesso - fora do Card
-    if (showSuccessAnimation) {
-        ServicoAceitoAnimation(
-            onDismiss = {
-                showSuccessAnimation = false
+    if (showSuccessDialog) {
+        SuccessDialog(
+            onDismiss = { showSuccessDialog = false },
+            onNavigate = {
+                val clienteNomeEncoded = URLEncoder.encode(solicitacao.cliente, StandardCharsets.UTF_8.toString())
+                val servicoDescricaoEncoded = URLEncoder.encode(solicitacao.servico, StandardCharsets.UTF_8.toString())
+                val valorEncoded = URLEncoder.encode(solicitacao.valor, StandardCharsets.UTF_8.toString())
+                val distanciaEncoded = URLEncoder.encode(solicitacao.distancia, StandardCharsets.UTF_8.toString())
+                val horarioEncoded = URLEncoder.encode(solicitacao.horario, StandardCharsets.UTF_8.toString())
+
+                navController.navigate(
+                    "tela_detalhe_pedido/${solicitacao.id}/$clienteNomeEncoded/$servicoDescricaoEncoded/$valorEncoded/$distanciaEncoded/$horarioEncoded"
+                )
             }
         )
     }
 }
 
 @Composable
-fun ServicoAceitoAnimation(onDismiss: () -> Unit) {
+fun SuccessDialog(
+    onDismiss: () -> Unit,
+    onNavigate: () -> Unit
+) {
     var visible by remember { mutableStateOf(true) }
 
     LaunchedEffect(visible) {
         if (visible) {
-            delay(2500) // Mostra por 2.5 segundos
+            delay(2000)
             visible = false
-            delay(300) // Espera a animação de saída
+            delay(300)
+            onNavigate()
             onDismiss()
         }
     }
 
     Dialog(
-        onDismissRequest = { /* Não permitir fechar clicando fora */ },
+        onDismissRequest = { },
         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
     ) {
         AnimatedVisibility(
             visible = visible,
             enter = scaleIn(
                 initialScale = 0.3f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ) + fadeIn(animationSpec = tween(300)),
-            exit = scaleOut(
-                targetScale = 1.1f,
-                animationSpec = tween(300)
-            ) + fadeOut(animationSpec = tween(300))
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+            ) + fadeIn(),
+            exit = scaleOut(targetScale = 1.1f) + fadeOut()
         ) {
             Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F3A)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Sucesso",
-                        tint = Color(0xFF019D31),
-                        modifier = Modifier.size(64.dp)
+                Box(modifier = Modifier.padding(48.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(0xFF4CAF50).copy(alpha = 0.3f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                CircleShape
+                            )
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .background(
+                                    Color(0xFF4CAF50).copy(alpha = 0.2f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Sucesso",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(52.dp)
+                            )
+                        }
 
-                    Text(
-                        text = "Serviço Aceito!",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF212121),
-                        textAlign = TextAlign.Center
-                    )
+                        Text(
+                            text = "Serviço Aceito!",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "O serviço foi aceito com sucesso.",
-                        fontSize = 14.sp,
-                        color = Color(0xFF757575),
-                        textAlign = TextAlign.Center
-                    )
+                        Text(
+                            text = "Prepare-se para realizar o serviço",
+                            fontSize = 15.sp,
+                            color = Color(0xFFB0B8C8),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
@@ -502,3 +867,4 @@ fun ServicoAceitoAnimation(onDismiss: () -> Unit) {
 fun PreviewTelaInicioPrestador() {
     TelaInicioPrestador(navController = androidx.navigation.compose.rememberNavController())
 }
+

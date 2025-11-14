@@ -10,7 +10,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.screens.*
+import com.exemple.facilita.screens.TelaInicioPrestador
 import com.exemple.facilita.viewmodel.PerfilViewModel
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,7 +120,26 @@ fun AppNavHost(navController: NavHostController) {
         composable("tela_tipo_veiculo") {
             TelaTipoVeiculo(navController, prestadorViewModel)
         }
-        
+
+        composable("tela_detalhe_pedido/{servicoId}/{clienteNome}/{servicoDescricao}/{valor}/{local}/{horario}") { backStackEntry ->
+            val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+            val clienteNome = URLDecoder.decode(backStackEntry.arguments?.getString("clienteNome") ?: "", StandardCharsets.UTF_8.toString())
+            val servicoDescricao = URLDecoder.decode(backStackEntry.arguments?.getString("servicoDescricao") ?: "", StandardCharsets.UTF_8.toString())
+            val valor = URLDecoder.decode(backStackEntry.arguments?.getString("valor") ?: "", StandardCharsets.UTF_8.toString())
+            val local = URLDecoder.decode(backStackEntry.arguments?.getString("local") ?: "", StandardCharsets.UTF_8.toString())
+            val horario = URLDecoder.decode(backStackEntry.arguments?.getString("horario") ?: "", StandardCharsets.UTF_8.toString())
+
+            TelaDetalhePedido(
+                navController = navController,
+                servicoId = servicoId,
+                clienteNome = clienteNome,
+                servicoDescricao = servicoDescricao,
+                valor = valor,
+                local = local,
+                horario = horario
+            )
+        }
+
         // Rotas da Carteira
         composable("tela_carteira") {
             TelaCarteira(navController)

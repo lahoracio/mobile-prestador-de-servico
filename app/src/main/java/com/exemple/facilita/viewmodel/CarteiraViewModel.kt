@@ -90,8 +90,21 @@ class CarteiraViewModel : ViewModel() {
                 val response = carteiraService.getContasBancarias(usuarioId)
                 if (response.isSuccessful) {
                     _contasBancarias.value = response.body() ?: emptyList()
-
+                }
             } catch (e: Exception) {
+                _errorMessage.value = "Erro ao carregar contas: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun solicitarSaque(valor: Double, contaBancariaId: String, token: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            try {
                 // Buscar dados da conta bancária
                 val conta = _contasBancarias.value.find { it.id == contaBancariaId }
 
@@ -119,17 +132,16 @@ class CarteiraViewModel : ViewModel() {
                         descricao = "Saque via PagBank - ID: ${resultado.data.id}"
                     )
                     carteiraService.solicitarSaque(solicitacao, "Bearer $token")
-
-            _isLoading.value = true
-            _errorMessage.value = null
+                } else {
                     _errorMessage.value = resultado.message ?: "Erro ao processar saque"
-
-            try {
-                val solicitacao = SolicitacaoSaque(
-                    valor = valor,
-                    contaBancariaId = contaBancariaId,
-                    descricao = "Saque solicitado"
-                )
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erro de conexão: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
 
 
     /**
@@ -242,20 +254,6 @@ class CarteiraViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Erro ao consultar status: ${e.message}"
-            }
-        }
-    }
-                val response = carteiraService.solicitarDeposito(solicitacao, "Bearer $token")
-                if (response.isSuccessful) {
-                    _successMessage.value = "Depósito solicitado com sucesso!"
-                    onSuccess()
-                } else {
-                    _errorMessage.value = "Erro ao solicitar depósito: ${response.code()}"
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Erro de conexão: ${e.message}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
