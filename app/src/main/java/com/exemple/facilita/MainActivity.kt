@@ -3,7 +3,18 @@ package com.exemple.facilita
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -30,6 +41,7 @@ fun AppNavHost(navController: NavHostController) {
     // ViewModels compartilhados entre todas as telas
     val perfilViewModel: PerfilViewModel = viewModel()
     val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = viewModel()
+    val servicoViewModel: com.exemple.facilita.viewmodel.ServicoViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -76,7 +88,7 @@ fun AppNavHost(navController: NavHostController) {
 
         //  Rotas do prestador
         composable("tela_inicio_prestador") {
-            TelaInicioPrestador(navController)
+            TelaInicioPrestador(navController, servicoViewModel)
         }
 
         composable("tela_perfil_prestador") {
@@ -181,6 +193,52 @@ fun AppNavHost(navController: NavHostController) {
         //     val tiposVeiculo = backStackEntry.arguments?.getString("tiposVeiculo") ?: ""
         //     TelaInformacoesVeiculo(navController, tiposVeiculo, perfilViewModel)
         // }
+
+        // Rota para tela de detalhes do serviço aceito
+        composable("tela_detalhes_servico_aceito/{servicoId}") { backStackEntry ->
+            val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+
+            // Observar o estado do serviço
+            val servicoState by servicoViewModel.servicoState.collectAsState()
+
+            LaunchedEffect(servicoId) {
+                servicoViewModel.carregarServico(servicoId)
+            }
+
+            when {
+                servicoState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF00FF88))
+                    }
+                }
+                servicoState.servico != null -> {
+                    TelaDetalhesServicoAceito(
+                        navController = navController,
+                        servicoDetalhe = servicoState.servico!!
+                    )
+                }
+                servicoState.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = servicoState.error ?: "Erro desconhecido",
+                                color = Color.Red
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { navController.popBackStack() }) {
+                                Text("Voltar")
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
     }
 }

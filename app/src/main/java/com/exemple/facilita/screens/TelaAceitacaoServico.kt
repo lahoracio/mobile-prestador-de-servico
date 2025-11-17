@@ -21,7 +21,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun TelaAceitacaoServico( navController: NavController,
+fun TelaAceitacaoServico(
+    navController: NavController,
+    servicoId: Int? = null,
     onAceitar: () -> Unit = {},
     onVoltar: () -> Unit = {}
 ) {
@@ -104,7 +106,13 @@ fun TelaAceitacaoServico( navController: NavController,
 
             // Botão Aceitar
             Button(
-                onClick = { onAceitar() },
+                onClick = {
+                    onAceitar()
+                    // Navegar para a tela de detalhes do serviço aceito
+                    servicoId?.let {
+                        navController.navigate("tela_detalhes_servico_aceito/$it")
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color(0xFF009B2A)

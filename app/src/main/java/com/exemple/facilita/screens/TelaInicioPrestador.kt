@@ -29,11 +29,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.exemple.facilita.model.Solicitacao
+import com.exemple.facilita.model.Servico
+import com.exemple.facilita.model.ServicoDetalhe
+import com.exemple.facilita.model.ContratanteDetalhe
+import com.exemple.facilita.model.UsuarioDetalhe
+import com.exemple.facilita.model.CategoriaDetalhe
+import com.exemple.facilita.model.LocalizacaoDetalhe
 import com.exemple.facilita.service.ApiResponse
 import com.exemple.facilita.service.AceitarServicoApiResponse
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
+import com.exemple.facilita.viewmodel.ServicoViewModel
 import kotlinx.coroutines.delay
 import retrofit2.Call
 import retrofit2.Callback
@@ -41,8 +49,70 @@ import retrofit2.Response
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+// Função de conversão
+fun Servico.toServicoDetalhe(): ServicoDetalhe {
+    return ServicoDetalhe(
+        id = this.id,
+        id_contratante = this.id_contratante,
+        id_prestador = this.id_prestador,
+        id_categoria = this.id_categoria,
+        descricao = this.descricao,
+        status = this.status,
+        data_solicitacao = this.data_solicitacao,
+        data_conclusao = null,
+        data_confirmacao = null,
+        id_localizacao = this.localizacao?.id,
+        valor = this.valor,
+        tempo_estimado = this.categoria.tempo_medio,
+        data_inicio = null,
+        contratante = ContratanteDetalhe(
+            id = this.contratante.id,
+            necessidade = this.contratante.necessidade,
+            id_usuario = this.contratante.usuario.id,
+            id_localizacao = this.localizacao?.id,
+            cpf = "",
+            usuario = UsuarioDetalhe(
+                id = this.contratante.usuario.id,
+                nome = this.contratante.usuario.nome,
+                senha_hash = null,
+                foto_perfil = this.contratante.usuario.foto_perfil,
+                email = this.contratante.usuario.email,
+                telefone = this.contratante.usuario.telefone,
+                tipo_conta = "CONTRATANTE",
+                criado_em = this.data_solicitacao
+            )
+        ),
+        prestador = null,
+        categoria = CategoriaDetalhe(
+            id = this.categoria.id,
+            nome = this.categoria.nome,
+            descricao = this.categoria.descricao,
+            icone = this.categoria.icone,
+            preco_base = this.categoria.preco_base,
+            tempo_medio = this.categoria.tempo_medio
+        ),
+        localizacao = this.localizacao?.let { loc ->
+            LocalizacaoDetalhe(
+                id = loc.id,
+                endereco = loc.logradouro,
+                bairro = loc.bairro,
+                cidade = loc.cidade,
+                estado = "SP", // Valor padrão
+                cep = loc.cep,
+                numero = loc.numero,
+                complemento = null,
+                latitude = loc.latitude.toDoubleOrNull() ?: 0.0,
+                longitude = loc.longitude.toDoubleOrNull() ?: 0.0
+            )
+        }
+    )
+}
+
 @Composable
-fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
+fun TelaInicioPrestador(
+    navController: androidx.navigation.NavController,
+    servicoViewModel: ServicoViewModel = viewModel()
+) {
     val context = LocalContext.current
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -439,7 +509,8 @@ fun TelaInicioPrestador(navController: androidx.navigation.NavController) {
                                     primaryColor = primaryGreen,
                                     cardBg = cardBg,
                                     textSecondary = textSecondary,
-                                    navController = navController
+                                    navController = navController,
+                                    servicoViewModel = servicoViewModel
                                 )
                             }
                         }
@@ -457,7 +528,8 @@ fun SolicitacaoCardPremium(
     primaryColor: Color,
     cardBg: Color,
     textSecondary: Color,
-    navController: androidx.navigation.NavController
+    navController: androidx.navigation.NavController,
+    servicoViewModel: ServicoViewModel
 ) {
     val context = LocalContext.current
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -478,7 +550,24 @@ fun SolicitacaoCardPremium(
             override fun onResponse(call: Call<AceitarServicoApiResponse>, response: Response<AceitarServicoApiResponse>) {
                 isLoading = false
                 if (response.isSuccessful) {
-                    showSuccessDialog = true
+                    val servico = response.body()?.data
+                    if (servico != null) {
+                        // Converter Servico para ServicoDetalhe
+                        val servicoDetalhe = servico.toServicoDetalhe()
+
+                        // Salvar no ViewModel
+                        servicoViewModel.salvarServicoAceito(servicoDetalhe)
+
+                        // Mostrar dialog de sucesso brevemente
+                        showSuccessDialog = true
+
+                        // Navegar para tela de detalhes após 1 segundo
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            navController.navigate("tela_detalhes_servico_aceito/${servicoDetalhe.id}")
+                        }, 1000)
+                    } else {
+                        Toast.makeText(context, "Erro ao processar resposta", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     Toast.makeText(context, "Erro ao aceitar: ${response.code()}", Toast.LENGTH_SHORT).show()
                 }
