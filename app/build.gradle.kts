@@ -99,16 +99,20 @@ dependencies {
     implementation("com.google.android.libraries.places:places:3.5.0")
 
     implementation("com.google.maps.android:maps-compose:4.3.3")
+
+    // Socket.IO para WebSocket
+    implementation("io.socket:socket.io-client:2.1.0")
+
+    // Google Maps
     implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.maps.android:android-maps-utils:3.8.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
+    // Google Directions API
+    implementation("com.google.maps:google-maps-services:2.2.0")
+    implementation("org.slf4j:slf4j-simple:1.7.36")
+
     implementation("com.airbnb.android:lottie-compose:6.3.0")
-
-
-
-
-
-
 
 }
 

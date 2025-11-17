@@ -1,0 +1,417 @@
+package com.exemple.facilita.screens
+
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.exemple.facilita.model.ServicoDetalhe
+import com.exemple.facilita.utils.TokenManager
+import com.exemple.facilita.viewmodel.RastreamentoViewModel
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TelaRastreamentoServico(
+    navController: NavController,
+    servicoDetalhe: ServicoDetalhe,
+    rastreamentoViewModel: RastreamentoViewModel = viewModel()
+) {
+    val context = LocalContext.current
+
+    // Cores do app (modo claro)
+    val primaryGreen = Color(0xFF019D31)
+
+    // Estados
+    val myLocation by rastreamentoViewModel.myLocation.collectAsState()
+    val otherUserLocation by rastreamentoViewModel.otherUserLocation.collectAsState()
+    val isConnected by rastreamentoViewModel.isConnected.collectAsState()
+    val connectionStatus by rastreamentoViewModel.connectionStatus.collectAsState()
+    val isTracking by rastreamentoViewModel.isTracking.collectAsState()
+    val lastUpdate by rastreamentoViewModel.lastUpdate.collectAsState()
+
+    // Posição inicial do mapa (localização do serviço ou São Paulo)
+    val initialPosition = servicoDetalhe.localizacao?.let {
+        LatLng(it.latitude, it.longitude)
+    } ?: LatLng(-23.5505, -46.6333)
+
+    // Estado da câmera do mapa
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(initialPosition, 15f)
+    }
+
+    // Permissão de localização
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+
+        if (fineLocation || coarseLocation) {
+            // Iniciar rastreamento
+            startTracking(context, servicoDetalhe, rastreamentoViewModel)
+        }
+    }
+
+    // Verificar e solicitar permissões
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    // Animação de pulso para conexão
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+
+    // Atualizar câmera quando localização mudar
+    LaunchedEffect(myLocation) {
+        myLocation?.let { location ->
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newLatLngZoom(location, 16f),
+                durationMs = 1000
+            )
+        }
+    }
+
+    // Cleanup ao sair
+    DisposableEffect(Unit) {
+        onDispose {
+            rastreamentoViewModel.stopTracking()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Rastreamento em Tempo Real",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isConnected) primaryGreen else Color.Red)
+                                    .alpha(if (isConnected) pulseAlpha else 1f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = connectionStatus,
+                                fontSize = 12.sp,
+                                color = if (isConnected) primaryGreen else Color.Red,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, "Voltar")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color(0xFF212121),
+                    navigationIconContentColor = Color(0xFF212121)
+                )
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Mapa do Google Maps
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(
+                    isMyLocationEnabled = false, // Vamos usar marcador customizado
+                    mapType = MapType.NORMAL
+                ),
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = true,
+                    compassEnabled = true,
+                    myLocationButtonEnabled = false
+                )
+            ) {
+                // Marcador da minha localização
+                myLocation?.let { location ->
+                    Marker(
+                        state = MarkerState(position = location),
+                        title = "Você",
+                        snippet = "Sua localização atual",
+                        icon = BitmapDescriptorFactory.defaultMarker(
+                            BitmapDescriptorFactory.HUE_AZURE
+                        )
+                    )
+                }
+
+                // Marcador da outra pessoa
+                otherUserLocation?.let { location ->
+                    Marker(
+                        state = MarkerState(position = location),
+                        title = lastUpdate?.prestadorName ?: "Outro usuário",
+                        snippet = "Localização em tempo real",
+                        icon = BitmapDescriptorFactory.defaultMarker(
+                            BitmapDescriptorFactory.HUE_GREEN
+                        )
+                    )
+                }
+
+                // Marcador do destino (localização do serviço)
+                servicoDetalhe.localizacao?.let { loc ->
+                    Marker(
+                        state = MarkerState(position = LatLng(loc.latitude, loc.longitude)),
+                        title = "Destino",
+                        snippet = loc.endereco,
+                        icon = BitmapDescriptorFactory.defaultMarker(
+                            BitmapDescriptorFactory.HUE_RED
+                        )
+                    )
+                }
+            }
+
+            // Card flutuante com informações
+            AnimatedVisibility(
+                visible = isTracking,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it }),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                InfoCard(
+                    servicoDetalhe = servicoDetalhe,
+                    myLocation = myLocation,
+                    otherUserLocation = otherUserLocation,
+                    lastUpdate = lastUpdate,
+                    rastreamentoViewModel = rastreamentoViewModel,
+                    primaryGreen = primaryGreen
+                )
+            }
+
+            // Botão de centralizar
+            myLocation?.let { location ->
+                FloatingActionButton(
+                    onClick = {
+                        cameraPositionState.move(
+                            CameraUpdateFactory.newLatLngZoom(location, 16f)
+                        )
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .padding(bottom = 180.dp),
+                    containerColor = primaryGreen
+                ) {
+                    Icon(
+                        Icons.Default.MyLocation,
+                        contentDescription = "Centralizar",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoCard(
+    servicoDetalhe: ServicoDetalhe,
+    myLocation: LatLng?,
+    otherUserLocation: LatLng?,
+    lastUpdate: com.exemple.facilita.service.LocationUpdate?,
+    rastreamentoViewModel: RastreamentoViewModel,
+    primaryGreen: Color
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            // Indicador de drag
+            Box(
+                modifier = Modifier
+                    .size(40.dp, 4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFFE0E0E0))
+                    .align(Alignment.CenterHorizontally)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Informações do serviço
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.LocalShipping,
+                    contentDescription = null,
+                    tint = primaryGreen,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = servicoDetalhe.contratante.usuario.nome,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF212121)
+                    )
+                    Text(
+                        text = servicoDetalhe.categoria.nome,
+                        fontSize = 14.sp,
+                        color = Color(0xFF757575)
+                    )
+                }
+                Text(
+                    text = "R$ ${servicoDetalhe.valor}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryGreen
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = Color(0xFFE0E0E0))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Distância
+            if (myLocation != null && otherUserLocation != null) {
+                val distance = rastreamentoViewModel.calculateDistance(myLocation, otherUserLocation)
+                val distanceText = rastreamentoViewModel.formatDistance(distance)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.NearMe,
+                            contentDescription = null,
+                            tint = primaryGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Distância",
+                            fontSize = 14.sp,
+                            color = Color(0xFF757575)
+                        )
+                    }
+                    Text(
+                        text = distanceText,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryGreen
+                    )
+                }
+            }
+
+            // Última atualização
+            lastUpdate?.let { update ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = Color(0xFF757575),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Última atualização",
+                            fontSize = 14.sp,
+                            color = Color(0xFF757575)
+                        )
+                    }
+                    Text(
+                        text = update.timestamp.substringAfter("T").substring(0, 8),
+                        fontSize = 14.sp,
+                        color = Color(0xFF757575)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Função auxiliar para iniciar rastreamento
+ */
+private fun startTracking(
+    context: android.content.Context,
+    servicoDetalhe: ServicoDetalhe,
+    rastreamentoViewModel: RastreamentoViewModel
+) {
+    // Obter dados do prestador
+    val userId = TokenManager.obterUsuarioId(context) ?: 0
+    val userName = TokenManager.obterNomeUsuario(context) ?: "Prestador"
+
+    rastreamentoViewModel.startTracking(
+        context = context,
+        servicoId = servicoDetalhe.id,
+        userId = userId,
+        userType = "prestador",
+        userName = userName
+    )
+}
+

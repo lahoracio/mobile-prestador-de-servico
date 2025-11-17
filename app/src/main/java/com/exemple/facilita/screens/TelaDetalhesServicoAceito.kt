@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,7 +48,6 @@ fun TelaDetalhesServicoAceito(
     // Cores do aplicativo (mesmas usadas em todo o app)
     val primaryGreen = Color(0xFF019D31)      // Verde principal do app
     val darkGreen = Color(0xFF015B2B)         // Verde escuro
-    val lightGreen = Color(0xFF00B94A)        // Verde claro
     val darkBg = Color(0xFF0F1419)            // Fundo escuro
     val cardBg = Color(0xFF1A1F26)            // Fundo dos cards
     val accentColor = Color(0xFF019D31)       // Cor de destaque (mesmo verde)
@@ -80,127 +80,213 @@ fun TelaDetalhesServicoAceito(
         // Fundo animado com círculos
         AnimatedBackground()
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Header futurista
-            FuturisticHeader(
-                navController = navController,
-                pulseAlpha = pulseAlpha
-            )
-
-            // Conteúdo scrollável
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                // Header futurista
+                FuturisticHeader(
+                    navController = navController,
+                    pulseAlpha = pulseAlpha
+                )
 
-                // Card de Valor com animação
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = slideInVertically(
-                        initialOffsetY = { -100 },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + fadeIn()
+                // Conteúdo scrollável
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp)
                 ) {
-                    ValorCard(valor = servicoDetalhe.valor, primaryGreen = primaryGreen, cardBg = cardBg)
-                }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Informações do Cliente
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = slideInHorizontally(
-                        initialOffsetX = { -100 },
-                        animationSpec = tween(600, delayMillis = 100)
-                    ) + fadeIn()
-                ) {
-                    ClienteInfoCard(
-                        servicoDetalhe = servicoDetalhe,
-                        cardBg = cardBg,
-                        primaryGreen = primaryGreen,
-                        textPrimary = textPrimary,
-                        textSecondary = textSecondary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Detalhes do Serviço
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = slideInHorizontally(
-                        initialOffsetX = { 100 },
-                        animationSpec = tween(600, delayMillis = 200)
-                    ) + fadeIn()
-                ) {
-                    DetalhesServicoCard(
-                        servicoDetalhe = servicoDetalhe,
-                        cardBg = cardBg,
-                        primaryGreen = primaryGreen,
-                        accentColor = accentColor,
-                        textPrimary = textPrimary,
-                        textSecondary = textSecondary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Localização
-                servicoDetalhe.localizacao?.let { loc ->
+                    // Card de Valor com animação
                     AnimatedVisibility(
                         visible = isVisible,
                         enter = slideInVertically(
-                            initialOffsetY = { 100 },
-                            animationSpec = tween(600, delayMillis = 300)
+                            initialOffsetY = { -100 },
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
                         ) + fadeIn()
                     ) {
-                        LocalizacaoCard(
-                            localizacao = loc,
+                        ValorCard(valor = servicoDetalhe.valor, primaryGreen = primaryGreen, cardBg = cardBg)
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Informações do Cliente
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = slideInHorizontally(
+                            initialOffsetX = { -100 },
+                            animationSpec = tween(600, delayMillis = 100)
+                        ) + fadeIn()
+                    ) {
+                        ClienteInfoCard(
+                            servicoDetalhe = servicoDetalhe,
                             cardBg = cardBg,
                             primaryGreen = primaryGreen,
                             textPrimary = textPrimary,
                             textSecondary = textSecondary
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(120.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Detalhes do Serviço
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = slideInHorizontally(
+                            initialOffsetX = { 100 },
+                            animationSpec = tween(600, delayMillis = 200)
+                        ) + fadeIn()
+                    ) {
+                        DetalhesServicoCard(
+                            servicoDetalhe = servicoDetalhe,
+                            cardBg = cardBg,
+                            primaryGreen = primaryGreen,
+                            accentColor = accentColor,
+                            textPrimary = textPrimary,
+                            textSecondary = textSecondary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Localização
+                    servicoDetalhe.localizacao?.let { loc ->
+                        AnimatedVisibility(
+                            visible = isVisible,
+                            enter = slideInVertically(
+                                initialOffsetY = { 100 },
+                                animationSpec = tween(600, delayMillis = 300)
+                            ) + fadeIn()
+                        ) {
+                            LocalizacaoCard(
+                                localizacao = loc,
+                                cardBg = cardBg,
+                                primaryGreen = primaryGreen,
+                                textPrimary = textPrimary,
+                                textSecondary = textSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(280.dp))
+                }
             }
 
-            // Botão de arrastar para iniciar rota (fixo na parte inferior)
+            // Três botões de ação FIXOS na parte inferior
             servicoDetalhe.localizacao?.let { loc ->
-                SwipeToStartButton(
-                    onSwipeComplete = {
-                        // Abrir Google Maps com navegação
-                        val uri = Uri.parse(
-                            "google.navigation:q=${loc.latitude},${loc.longitude}&mode=d"
-                        )
-                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                            setPackage("com.google.android.apps.maps")
-                        }
-
-                        if (intent.resolveActivity(context.packageManager) != null) {
-                            context.startActivity(intent)
-                        } else {
-                            val browserIntent = Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    darkBg,
+                                    darkBg
+                                )
                             )
-                            context.startActivity(browserIntent)
+                        )
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Botão 1: Ver Rota no Mapa (Estilo Uber) - PRINCIPAL
+                    SwipeToStartButton(
+                        text = "Arraste para Ver Rota no Mapa",
+                        onSwipeComplete = {
+                            // Navegar para tela de mapa com rota
+                            navController.navigate("tela_mapa_rota/${servicoDetalhe.id}")
+                        },
+                        primaryGreen = primaryGreen,
+                        darkGreen = darkGreen,
+                        icon = Icons.Default.Map
+                    )
+
+                    // Botão 2: Rastreamento em Tempo Real
+                    Button(
+                        onClick = {
+                            navController.navigate("tela_rastreamento_servico/${servicoDetalhe.id}")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryGreen.copy(alpha = 0.8f)
+                        ),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MyLocation,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Rastreamento em Tempo Real",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
                         }
-                    },
-                    primaryGreen = primaryGreen,
-                    darkGreen = darkGreen
-                )
+                    }
+
+                    // Botão 3: Google Maps Externo
+                    OutlinedButton(
+                        onClick = {
+                            // Abrir Google Maps diretamente
+                            val uri = Uri.parse(
+                                "google.navigation:q=${loc.latitude},${loc.longitude}&mode=d"
+                            )
+                            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                setPackage("com.google.android.apps.maps")
+                            }
+
+                            if (intent.resolveActivity(context.packageManager) != null) {
+                                context.startActivity(intent)
+                            } else {
+                                val browserIntent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}")
+                                )
+                                context.startActivity(browserIntent)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        border = BorderStroke(2.dp, Color(0xFF1E88E5)),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Navigation,
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Abrir no Google Maps",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1E88E5)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -696,6 +782,8 @@ fun LocalizacaoCard(
 
 @Composable
 fun SwipeToStartButton(
+    text: String = "Arraste para Iniciar",
+    icon: ImageVector = Icons.Default.Navigation,
     onSwipeComplete: () -> Unit,
     primaryGreen: Color,
     darkGreen: Color
@@ -754,14 +842,14 @@ fun SwipeToStartButton(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Navigation,
+                        imageVector = icon,
                         contentDescription = null,
                         tint = primaryGreen,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Arraste para Iniciar Rota",
+                        text = text,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,

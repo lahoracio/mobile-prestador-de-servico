@@ -85,31 +85,16 @@ object TokenManager {
     }
 
     /**
-     * Obtém o tipo de conta do usuário
+     * Obtém o ID do usuário salvo
      */
-    fun obterTipoConta(context: Context): String? {
+    fun obterUsuarioId(context: Context): Int? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(TIPO_CONTA_KEY, null)
+        val userId = prefs.getInt(USER_ID_KEY, -1)
+        return if (userId != -1) userId else null
     }
 
     /**
-     * Obtém o ID do usuário
-     */
-    fun obterUserId(context: Context): Int? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val id = prefs.getInt(USER_ID_KEY, -1)
-        return if (id != -1) id else null
-    }
-
-    /**
-     * Verifica se o usuário é CONTRATANTE
-     */
-    fun isContratante(context: Context): Boolean {
-        return obterTipoConta(context) == "CONTRATANTE"
-    }
-
-    /**
-     * Obtém o nome do usuário
+     * Obtém o nome do usuário salvo
      */
     fun obterNomeUsuario(context: Context): String? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -122,6 +107,21 @@ object TokenManager {
         }
 
         return nome
+    }
+
+    /**
+     * Obtém o tipo de conta do usuário
+     */
+    fun obterTipoConta(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(TIPO_CONTA_KEY, null)
+    }
+
+    /**
+     * Verifica se o usuário é CONTRATANTE
+     */
+    fun isContratante(context: Context): Boolean {
+        return obterTipoConta(context) == "CONTRATANTE"
     }
 }
 

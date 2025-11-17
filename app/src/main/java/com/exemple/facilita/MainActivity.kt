@@ -240,5 +240,97 @@ fun AppNavHost(navController: NavHostController) {
             }
         }
 
+        // Rota para tela de mapa com rota (estilo Uber)
+        composable("tela_mapa_rota/{servicoId}") { backStackEntry ->
+            val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+
+            // Observar o estado do serviço
+            val servicoState by servicoViewModel.servicoState.collectAsState()
+
+            LaunchedEffect(servicoId) {
+                servicoViewModel.carregarServico(servicoId)
+            }
+
+            when {
+                servicoState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF019D31))
+                    }
+                }
+                servicoState.servico != null -> {
+                    TelaMapaRota(
+                        navController = navController,
+                        servicoDetalhe = servicoState.servico!!
+                    )
+                }
+                servicoState.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = servicoState.error ?: "Erro desconhecido",
+                                color = Color.Red
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { navController.popBackStack() }) {
+                                Text("Voltar")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Rota para tela de rastreamento em tempo real
+        composable("tela_rastreamento_servico/{servicoId}") { backStackEntry ->
+            val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+
+            // Observar o estado do serviço
+            val servicoState by servicoViewModel.servicoState.collectAsState()
+
+            LaunchedEffect(servicoId) {
+                servicoViewModel.carregarServico(servicoId)
+            }
+
+            when {
+                servicoState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF019D31))
+                    }
+                }
+                servicoState.servico != null -> {
+                    TelaRastreamentoServico(
+                        navController = navController,
+                        servicoDetalhe = servicoState.servico!!
+                    )
+                }
+                servicoState.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = servicoState.error ?: "Erro desconhecido",
+                                color = Color.Red
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { navController.popBackStack() }) {
+                                Text("Voltar")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
