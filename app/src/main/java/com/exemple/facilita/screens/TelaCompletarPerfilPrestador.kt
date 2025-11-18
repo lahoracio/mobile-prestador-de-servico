@@ -103,9 +103,9 @@ fun TelaCompletarPerfilPrestador(
 
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && response.body() != null) {
-                        android.widget.Toast.makeText(context, "✅ Cadastro finalizado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
-                        kotlinx.coroutines.delay(800)
-                        navController.navigate("tela_inicio_prestador") {
+                        android.widget.Toast.makeText(context, "✅ Cadastro finalizado com sucesso! Faça login para continuar.", android.widget.Toast.LENGTH_LONG).show()
+                        kotlinx.coroutines.delay(1500)
+                        navController.navigate("tela_login") {
                             popUpTo(0) { inclusive = true }
                         }
                     } else {

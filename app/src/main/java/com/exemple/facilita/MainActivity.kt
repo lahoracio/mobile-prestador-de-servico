@@ -42,11 +42,28 @@ fun AppNavHost(navController: NavHostController) {
     val perfilViewModel: PerfilViewModel = viewModel()
     val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = viewModel()
     val servicoViewModel: com.exemple.facilita.viewmodel.ServicoViewModel = viewModel()
+    val notificacaoViewModel: com.exemple.facilita.viewmodel.NotificacaoServicoViewModel = viewModel()
 
-    NavHost(
-        navController = navController,
-        startDestination = "splash_screen"
-    ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val token = com.exemple.facilita.utils.TokenManager.obterTokenComBearer(context) ?: ""
+
+    // Estados de notificação
+    val novoServico by notificacaoViewModel.novoServico.collectAsState()
+    val mostrarNotificacao by notificacaoViewModel.mostrarNotificacao.collectAsState()
+    val tempoRestante by notificacaoViewModel.tempoRestante.collectAsState()
+
+    // Inicia monitoramento quando o prestador estiver logado
+    LaunchedEffect(token) {
+        if (token.isNotEmpty()) {
+            notificacaoViewModel.iniciarMonitoramento(token)
+        }
+    }
+
+    Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = "splash_screen"
+        ) {
 
         composable("splash_screen") {
             SplashScreen(navController)
@@ -333,4 +350,21 @@ fun AppNavHost(navController: NavHostController) {
         }
 
     }
+
+    // Notificação de novo serviço (aparece sobre qualquer tela)
+    if (mostrarNotificacao && novoServico != null) {
+        com.exemple.facilita.screens.NotificacaoNovoServico(
+            servico = novoServico!!,
+            tempoRestante = tempoRestante,
+            onAceitar = {
+                notificacaoViewModel.fecharNotificacao()
+            },
+            onVoltar = {
+                notificacaoViewModel.fecharNotificacao()
+            },
+            navController = navController,
+            servicoViewModel = servicoViewModel
+        )
+    }
+  }
 }

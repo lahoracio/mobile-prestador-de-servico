@@ -25,6 +25,12 @@ interface ServicoService {
         @Header("Authorization") token: String,
         @Path("id") idServico: Int
     ): Call<AceitarServicoApiResponse>
+
+    @GET("v1/facilita/servico/prestador/em-andamento")
+    fun getServicosEmAndamento(
+        @Header("Authorization") token: String,
+        @Header("Content-Type") contentType: String = "application/json"
+    ): Call<ServicosResponse>
 }
 
 // Model genérico do retorno da API para lista de serviços
@@ -38,5 +44,11 @@ data class AceitarServicoApiResponse(
     val status_code: Int,
     val message: String,
     val data: Servico
+)
+
+// Model para resposta de serviços em andamento
+data class ServicosResponse(
+    val status_code: Int,
+    val servicos: List<com.exemple.facilita.model.ServicoDetalhe>
 )
 

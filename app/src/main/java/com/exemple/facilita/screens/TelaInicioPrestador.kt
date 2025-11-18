@@ -127,7 +127,11 @@ fun TelaInicioPrestador(
 
     val token = TokenManager.obterTokenComBearer(context) ?: ""
 
-    // Obter nome real do usuário
+    // Obter dados reais do usuário logado
+    val usuarioId = remember {
+        TokenManager.obterUsuarioId(context)?.toString() ?: "0"
+    }
+
     val nomeUsuario = remember {
         TokenManager.obterNomeUsuario(context) ?: "Prestador"
     }
@@ -144,9 +148,9 @@ fun TelaInicioPrestador(
         animateBalance = true
     }
 
-    // Carregar carteira
-    LaunchedEffect(Unit) {
-        carteiraViewModel.carregarCarteira("user123")
+    // Carregar carteira com ID real do usuário
+    LaunchedEffect(usuarioId) {
+        carteiraViewModel.carregarCarteira(usuarioId)
     }
 
     // Buscar solicitações da API com atualização automática a cada 10 segundos
@@ -158,12 +162,37 @@ fun TelaInicioPrestador(
                     if (response.isSuccessful) {
                         val data = response.body()?.data ?: emptyList()
                         listaSolicitacoes = data.map { servico ->
+                            // Montar localização de forma mais completa
+                            val localizacao = servico.localizacao?.let { loc ->
+                                buildString {
+                                    if (!loc.logradouro.isNullOrBlank()) {
+                                        append(loc.logradouro)
+                                    }
+                                    if (!loc.numero.isNullOrBlank()) {
+                                        if (isNotEmpty()) append(", ")
+                                        append(loc.numero)
+                                    }
+                                    if (!loc.bairro.isNullOrBlank()) {
+                                        if (isNotEmpty()) append(" - ")
+                                        append(loc.bairro)
+                                    }
+                                    if (!loc.cidade.isNullOrBlank()) {
+                                        if (isNotEmpty()) append(", ")
+                                        append(loc.cidade)
+                                    }
+                                    // Se nada foi adicionado, tenta o bairro ou cidade
+                                    if (isEmpty()) {
+                                        append(loc.bairro ?: loc.cidade ?: "Localização disponível")
+                                    }
+                                }
+                            } ?: "Não informado"
+
                             Solicitacao(
                                 id = servico.id,
                                 numero = servico.id,
                                 cliente = servico.contratante.usuario.nome,
                                 servico = servico.descricao,
-                                distancia = servico.localizacao?.bairro ?: "Não informado",
+                                distancia = localizacao,
                                 horario = servico.data_solicitacao.substring(11, 16),
                                 valor = "R$ ${servico.valor}"
                             )
@@ -343,7 +372,11 @@ fun TelaInicioPrestador(
                                         cardBg = cardBg,
                                         textSecondary = textSecondary,
                                         navController = navController,
-                                        servicoViewModel = servicoViewModel
+                                        servicoViewModel = servicoViewModel,
+                                        onRecusar = { id ->
+                                            // Remover da lista
+                                            listaSolicitacoes = listaSolicitacoes.filter { it.id != id }
+                                        }
                                     )
                                 }
                             }
@@ -363,7 +396,8 @@ fun SolicitacaoCardPremium(
     cardBg: Color,
     textSecondary: Color,
     navController: androidx.navigation.NavController,
-    servicoViewModel: ServicoViewModel
+    servicoViewModel: ServicoViewModel,
+    onRecusar: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -648,6 +682,7 @@ fun SolicitacaoCardPremium(
                     OutlinedButton(
                         onClick = {
                             if (!isLoading) {
+                                onRecusar(solicitacao.id)
                                 Toast.makeText(context, "Serviço recusado", Toast.LENGTH_SHORT).show()
                             }
                         },
@@ -724,7 +759,7 @@ fun SuccessDialog(
         ) {
             Card(
                 shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F3A)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
             ) {
                 Box(modifier = Modifier.padding(48.dp), contentAlignment = Alignment.Center) {
@@ -734,7 +769,7 @@ fun SuccessDialog(
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        Color(0xFF4CAF50).copy(alpha = 0.3f),
+                                        Color(0xFF019D31).copy(alpha = 0.15f),
                                         Color.Transparent
                                     )
                                 ),
@@ -750,7 +785,7 @@ fun SuccessDialog(
                             modifier = Modifier
                                 .size(90.dp)
                                 .background(
-                                    Color(0xFF4CAF50).copy(alpha = 0.2f),
+                                    Color(0xFF019D31).copy(alpha = 0.1f),
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -758,7 +793,7 @@ fun SuccessDialog(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Sucesso",
-                                tint = Color(0xFF4CAF50),
+                                tint = Color(0xFF019D31),
                                 modifier = Modifier.size(52.dp)
                             )
                         }
@@ -767,14 +802,14 @@ fun SuccessDialog(
                             text = "Serviço Aceito!",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
+                            color = Color(0xFF212121),
                             textAlign = TextAlign.Center
                         )
 
                         Text(
                             text = "Prepare-se para realizar o serviço",
                             fontSize = 15.sp,
-                            color = Color(0xFFB0B8C8),
+                            color = Color(0xFF666666),
                             textAlign = TextAlign.Center
                         )
                     }

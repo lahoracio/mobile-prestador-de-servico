@@ -69,9 +69,14 @@ fun TelaCarteira(navController: NavController) {
         )
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.carregarCarteira("user123")
-        viewModel.carregarTransacoes("user123")
+    // Obter ID real do usuário logado
+    val usuarioId = remember {
+        com.exemple.facilita.utils.TokenManager.obterUsuarioId(context)?.toString() ?: "0"
+    }
+
+    LaunchedEffect(usuarioId) {
+        viewModel.carregarCarteira(usuarioId)
+        viewModel.carregarTransacoes(usuarioId)
     }
 
     var visible by remember { mutableStateOf(false) }
@@ -311,7 +316,7 @@ private fun HeaderCarteira(
             Spacer(Modifier.height(12.dp))
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Text("💳 Use seu saldo para pagar corridas", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp)
+                Text("💳 Acompanhe seu saldo após os serviços realizados", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp)
             }
         }
     }
