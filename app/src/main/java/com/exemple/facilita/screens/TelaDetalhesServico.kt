@@ -2,7 +2,13 @@ package com.exemple.facilita.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,10 +26,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.exemple.facilita.model.ServicoDetalhe
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,24 +41,36 @@ fun TelaDetalhesServico(
 ) {
     val context = LocalContext.current
     val primaryColor = Color(0xFF019D31)
-    val backgroundColor = Color(0xFFF5F7FA)
+     val backgroundColor = Color(0xFFF8F9FA)
+
+    // Estado para o botão deslizante
+    var offsetX by remember { mutableStateOf(0f) }
+    val maxOffset = 280f // Largura máxima para deslizar
 
     Scaffold(
         containerColor = backgroundColor,
         topBar = {
             TopAppBar(
-                title = { Text("Detalhes do Serviço") },
+                title = {
+                    Text(
+                        "Detalhes do Serviço",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF212121)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Voltar"
+                            contentDescription = "Voltar",
+                            tint = Color(0xFF212121)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF212121)
+                    containerColor = primaryColor,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
@@ -248,67 +268,204 @@ fun TelaDetalhesServico(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Botão Iniciar Rota
-            servicoDetalhe.localizacao?.let { loc ->
-                Button(
-                    onClick = {
-                        // Abrir Google Maps com a rota
-                        val uri = Uri.parse(
-                            "google.navigation:q=${loc.latitude},${loc.longitude}&mode=d"
-                        )
-                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                            setPackage("com.google.android.apps.maps")
-                        }
-
-                        // Verificar se o Google Maps está instalado
-                        if (intent.resolveActivity(context.packageManager) != null) {
-                            context.startActivity(intent)
-                        } else {
-                            // Fallback para o browser
-                            val browserIntent = Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}")
-                            )
-                            context.startActivity(browserIntent)
-                        }
-                    },
+            // Card de Comunicação
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues()
+                        .padding(20.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))
-                                ),
-                                shape = RoundedCornerShape(28.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Message,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Comunicação com o Cliente",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF212121)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Entre em contato com o cliente para combinar detalhes do serviço:",
+                        fontSize = 14.sp,
+                        color = Color(0xFF666666),
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        // Botão de Chat
+                        OutlinedButton(
+                            onClick = {
+                                // TODO: Implementar chat
+                                Toast.makeText(context, "Chat em desenvolvimento", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = primaryColor
+                            ),
+                            border = BorderStroke(2.dp, primaryColor)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Chat", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+
+                        // Botão de Ligação
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:${servicoDetalhe.contratante.usuario.telefone}")
+                                }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Ligar", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botão Deslizante para Iniciar Rota
+            servicoDetalhe.localizacao?.let { loc ->
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Navigation,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = primaryColor,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Iniciar Rota",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "Navegação",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF212121)
                             )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Botão Deslizante
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .clip(RoundedCornerShape(32.dp))
+                                .background(Color(0xFFE8F5E9))
+                        ) {
+                            // Texto de instrução
+                            Text(
+                                text = if (offsetX < maxOffset * 0.8f)
+                                    "Deslize para iniciar rota →"
+                                else
+                                    "Solte para confirmar",
+                                modifier = Modifier.align(Alignment.Center),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (offsetX < maxOffset * 0.8f)
+                                    Color(0xFF666666)
+                                else
+                                    primaryColor
+                            )
+
+                            // Botão deslizante
+                            Box(
+                                modifier = Modifier
+                                    .offset { IntOffset(offsetX.roundToInt(), 0) }
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(Color(0xFF015B2B), Color(0xFF00B94A))
+                                        )
+                                    )
+                                    .draggable(
+                                        orientation = Orientation.Horizontal,
+                                        state = rememberDraggableState { delta ->
+                                            offsetX = (offsetX + delta).coerceIn(0f, maxOffset)
+                                        },
+                                        onDragStopped = {
+                                            if (offsetX >= maxOffset * 0.8f) {
+                                                // Iniciar rota
+                                                val uri = Uri.parse(
+                                                    "google.navigation:q=${loc.latitude},${loc.longitude}&mode=d"
+                                                )
+                                                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                                    setPackage("com.google.android.apps.maps")
+                                                }
+
+                                                if (intent.resolveActivity(context.packageManager) != null) {
+                                                    context.startActivity(intent)
+                                                } else {
+                                                    val browserIntent = Intent(
+                                                        Intent.ACTION_VIEW,
+                                                        Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}")
+                                                    )
+                                                    context.startActivity(browserIntent)
+                                                }
+                                            }
+                                            // Reset
+                                            offsetX = 0f
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Navigation,
+                                    contentDescription = "Deslize para iniciar",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
                     }
                 }

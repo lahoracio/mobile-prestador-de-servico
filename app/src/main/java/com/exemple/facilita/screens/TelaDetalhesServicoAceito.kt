@@ -2,6 +2,7 @@ package com.exemple.facilita.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -45,14 +46,12 @@ fun TelaDetalhesServicoAceito(
 ) {
     val context = LocalContext.current
 
-    // Cores do aplicativo (mesmas usadas em todo o app)
+    // Cores do aplicativo - MODO LIGHT
     val primaryGreen = Color(0xFF019D31)      // Verde principal do app
-    val darkGreen = Color(0xFF015B2B)         // Verde escuro
-    val darkBg = Color(0xFF0F1419)            // Fundo escuro
-    val cardBg = Color(0xFF1A1F26)            // Fundo dos cards
-    val accentColor = Color(0xFF019D31)       // Cor de destaque (mesmo verde)
-    val textPrimary = Color.White
-    val textSecondary = Color(0xFFB0B8C8)
+    val lightBg = Color(0xFFF8F9FA)           // Fundo claro
+    val cardBg = Color.White                   // Fundo dos cards branco
+    val textPrimary = Color(0xFF212121)       // Texto escuro
+    val textSecondary = Color(0xFF666666)     // Texto secundário
 
     // Animação de entrada
     var isVisible by remember { mutableStateOf(false) }
@@ -60,45 +59,43 @@ fun TelaDetalhesServicoAceito(
         isVisible = true
     }
 
-    // Animação pulsante para o status
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(darkBg)
-    ) {
-        // Fundo animado com círculos
-        AnimatedBackground()
-
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Header futurista
-                FuturisticHeader(
-                    navController = navController,
-                    pulseAlpha = pulseAlpha
+    Scaffold(
+        containerColor = lightBg,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Serviço Aceito",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = primaryGreen,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
-
-                // Conteúdo scrollável
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp)
-                ) {
+            )
+        }
+    ) { paddingValues ->
+        // Conteúdo scrollável
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+        ) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Card de Valor com animação
@@ -148,7 +145,7 @@ fun TelaDetalhesServicoAceito(
                             servicoDetalhe = servicoDetalhe,
                             cardBg = cardBg,
                             primaryGreen = primaryGreen,
-                            accentColor = accentColor,
+                            accentColor = primaryGreen,
                             textPrimary = textPrimary,
                             textSecondary = textSecondary
                         )
@@ -175,65 +172,159 @@ fun TelaDetalhesServicoAceito(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(280.dp))
-                }
-            }
+                    Spacer(modifier = Modifier.height(20.dp))
 
-            // Três botões de ação FIXOS na parte inferior
-            servicoDetalhe.localizacao?.let { loc ->
+            // Card de Comunicação
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    darkBg,
-                                    darkBg
-                                )
-                            )
-                        )
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(20.dp)
                 ) {
-                    // Botão 1: Ver Rota no Mapa (Estilo Uber) - PRINCIPAL
-                    SwipeToStartButton(
-                        text = "Arraste para Ver Rota no Mapa",
-                        onSwipeComplete = {
-                            // Navegar para tela de mapa com rota
-                            navController.navigate("tela_mapa_rota/${servicoDetalhe.id}")
-                        },
-                        primaryGreen = primaryGreen,
-                        darkGreen = darkGreen,
-                        icon = Icons.Default.Map
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Message,
+                            contentDescription = null,
+                            tint = primaryGreen,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Comunicação com o Cliente",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textPrimary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Entre em contato para combinar detalhes:",
+                        fontSize = 14.sp,
+                        color = textSecondary,
+                        lineHeight = 20.sp
                     )
 
-                    // Botão 2: Rastreamento em Tempo Real
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Botão de Chat
+                        OutlinedButton(
+                            onClick = {
+                                // TODO: Implementar chat
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = primaryGreen
+                            ),
+                            border = BorderStroke(2.dp, primaryGreen)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Chat", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+
+                        // Botão de Ligação
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:${servicoDetalhe.contratante.usuario.telefone}")
+                                }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryGreen
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Ligar", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botões de Navegação
+            servicoDetalhe.localizacao?.let { loc ->
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Navigation,
+                                contentDescription = null,
+                                tint = primaryGreen,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Navegação",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textPrimary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                    // Botão Ver Rota no Mapa
                     Button(
                         onClick = {
-                            navController.navigate("tela_rastreamento_servico/${servicoDetalhe.id}")
+                            navController.navigate("tela_mapa_rota/${servicoDetalhe.id}")
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryGreen.copy(alpha = 0.8f)
+                            containerColor = primaryGreen
                         ),
-                        shape = RoundedCornerShape(28.dp)
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MyLocation,
+                                imageVector = Icons.Default.Map,
                                 contentDescription = null,
                                 tint = Color.White
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Rastreamento em Tempo Real",
+                                text = "Ver Rota no Mapa",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -241,7 +332,7 @@ fun TelaDetalhesServicoAceito(
                         }
                     }
 
-                    // Botão 3: Google Maps Externo
+                    // Botão Google Maps Externo
                     OutlinedButton(
                         onClick = {
                             // Abrir Google Maps diretamente
@@ -265,8 +356,11 @@ fun TelaDetalhesServicoAceito(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        border = BorderStroke(2.dp, Color(0xFF1E88E5)),
-                        shape = RoundedCornerShape(28.dp)
+                        border = BorderStroke(2.dp, primaryGreen),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = primaryGreen
+                        )
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -275,25 +369,30 @@ fun TelaDetalhesServicoAceito(
                             Icon(
                                 imageVector = Icons.Default.Navigation,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5)
+                                tint = primaryGreen
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Abrir no Google Maps",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1E88E5)
+                                color = primaryGreen
                             )
                         }
                     }
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
+// Função removida - AnimatedBackground não é mais necessária no modo light
+
 @Composable
-fun AnimatedBackground() {
+fun AnimatedBackgroundOld() {
     val infiniteTransition = rememberInfiniteTransition(label = "background")
 
     val offset1 by infiniteTransition.animateFloat(

@@ -280,7 +280,7 @@ fun TelaCompletarPerfilPrestador(
             if (!prestadorCriado) {
                 item {
                     Text(
-                        text = "📍 Cadastre seus endereços",
+                        text = "Cadastre seus endereços",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF019D31)
@@ -392,7 +392,7 @@ fun TelaCompletarPerfilPrestador(
             if (prestadorCriado) {
                 item {
                     Text(
-                        text = "📄 Cadastre seus documentos",
+                        text = "Cadastre seus documentos",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF019D31)

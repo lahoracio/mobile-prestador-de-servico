@@ -25,11 +25,13 @@ import java.util.*
  * - Histórico de transações
  * - Gerenciamento de contas bancárias
  */
-class CarteiraViewModel : ViewModel() {
+class CarteiraViewModel(application: android.app.Application) : androidx.lifecycle.AndroidViewModel(application) {
 
     private val carteiraService: CarteiraService = RetrofitFactory.getCarteiraService()
     private val pagBankRepository = PagBankRepository()
     private val tag = "CarteiraViewModel"
+
+    private val sharedPreferences = application.getSharedPreferences("carteira_prefs", android.content.Context.MODE_PRIVATE)
 
     private val _carteira = MutableStateFlow<Carteira?>(null)
     val carteira: StateFlow<Carteira?> = _carteira
@@ -126,26 +128,38 @@ class CarteiraViewModel : ViewModel() {
             _errorMessage.value = null
 
             try {
+                // Carregar saldo salvo localmente
+                val saldoSalvo = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
+                val saldoBloqueadoSalvo = sharedPreferences.getFloat("saldo_bloqueado_$usuarioId", 0f).toDouble()
+
                 val response = carteiraService.getCarteira(usuarioId)
                 if (response.isSuccessful) {
-                    _carteira.value = response.body()
+                    val carteiraApi = response.body()
+                    // Usar saldo local se for maior (para manter depósitos simulados)
+                    _carteira.value = carteiraApi?.copy(
+                        saldo = maxOf(carteiraApi.saldo, saldoSalvo),
+                        saldoBloqueado = maxOf(carteiraApi.saldoBloqueado, saldoBloqueadoSalvo)
+                    )
                 } else {
-                    // Se não existir no backend, criar carteira local com saldo zero
+                    // Se não existir no backend, usar carteira local com saldo salvo
                     _carteira.value = Carteira(
                         id = usuarioId,
                         usuarioId = usuarioId,
-                        saldo = 0.0,
-                        saldoBloqueado = 0.0
+                        saldo = saldoSalvo,
+                        saldoBloqueado = saldoBloqueadoSalvo
                     )
-                    Log.d(tag, "Carteira criada localmente com saldo zero")
+                    Log.d(tag, "Carteira criada localmente com saldo: $saldoSalvo")
                 }
             } catch (e: Exception) {
-                // Em caso de erro, iniciar com carteira zerada
+                // Em caso de erro, carregar saldo salvo localmente
+                val saldoSalvo = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
+                val saldoBloqueadoSalvo = sharedPreferences.getFloat("saldo_bloqueado_$usuarioId", 0f).toDouble()
+
                 _carteira.value = Carteira(
                     id = usuarioId,
                     usuarioId = usuarioId,
-                    saldo = 0.0,
-                    saldoBloqueado = 0.0
+                    saldo = saldoSalvo,
+                    saldoBloqueado = saldoBloqueadoSalvo
                 )
                 Log.d(tag, "Carteira inicializada localmente: ${e.message}")
             } finally {
@@ -235,10 +249,19 @@ class CarteiraViewModel : ViewModel() {
                     _transacoes.value = listOf(novaTransacao) + _transacoes.value
 
                     // Debitar saldo imediatamente (bloquear)
+                    val novoSaldo = saldoAtual - valor
+                    val novoSaldoBloqueado = (_carteira.value?.saldoBloqueado ?: 0.0) + valor
                     _carteira.value = _carteira.value?.copy(
-                        saldo = saldoAtual - valor,
-                        saldoBloqueado = (_carteira.value?.saldoBloqueado ?: 0.0) + valor
+                        saldo = novoSaldo,
+                        saldoBloqueado = novoSaldoBloqueado
                     )
+
+                    // Salvar no SharedPreferences
+                    val usuarioId = _carteira.value?.usuarioId ?: "user123"
+                    sharedPreferences.edit()
+                        .putFloat("saldo_$usuarioId", novoSaldo.toFloat())
+                        .putFloat("saldo_bloqueado_$usuarioId", novoSaldoBloqueado.toFloat())
+                        .apply()
 
                     val format = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
                     _successMessage.value = "Saque de ${format.format(valor)} solicitado! Processamento em até 1 dia útil."
@@ -479,14 +502,17 @@ class CarteiraViewModel : ViewModel() {
         }
 
         // Adicionar saldo
-        _carteira.value = _carteira.value?.copy(
-            saldo = (_carteira.value?.saldo ?: 0.0) + valor
-        )
+        val novoSaldo = (_carteira.value?.saldo ?: 0.0) + valor
+        _carteira.value = _carteira.value?.copy(saldo = novoSaldo)
+
+        // Salvar no SharedPreferences
+        val usuarioId = _carteira.value?.usuarioId ?: "user123"
+        sharedPreferences.edit().putFloat("saldo_$usuarioId", novoSaldo.toFloat()).apply()
 
         val format = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
         _successMessage.value = "✅ Depósito confirmado! ${format.format(valor)}"
 
-        Log.d(tag, "✅ Depósito confirmado: +${format.format(valor)}")
+        Log.d(tag, "✅ Depósito confirmado: +${format.format(valor)} | Saldo total: ${format.format(novoSaldo)}")
     }
 
     /**
@@ -624,9 +650,12 @@ class CarteiraViewModel : ViewModel() {
                 _transacoes.value = listOf(novaTransacao) + _transacoes.value
 
                 // Adicionar saldo
-                _carteira.value = _carteira.value?.copy(
-                    saldo = (_carteira.value?.saldo ?: 0.0) + valor
-                )
+                val novoSaldo = (_carteira.value?.saldo ?: 0.0) + valor
+                _carteira.value = _carteira.value?.copy(saldo = novoSaldo)
+
+                // Salvar no SharedPreferences
+                val usuarioId = _carteira.value?.usuarioId ?: "user123"
+                sharedPreferences.edit().putFloat("saldo_$usuarioId", novoSaldo.toFloat()).apply()
 
                 onSuccess()
             } catch (e: Exception) {
