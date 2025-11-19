@@ -26,9 +26,15 @@ import com.exemple.facilita.viewmodel.PerfilViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
+// IMPORTANTE
+import com.exemple.facilita.webrtc.WebRtcModule
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WebRtcModule.initialize(this)
+
         setContent {
             val navController = rememberNavController()
             AppNavHost(navController)

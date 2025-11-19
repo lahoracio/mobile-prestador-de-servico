@@ -114,5 +114,18 @@ dependencies {
 
     implementation("com.airbnb.android:lottie-compose:6.3.0")
 
+    //Web RTC
+    implementation("io.github.webrtc-sdk:android:125.6422.04")
+
+    // Permissões
+    implementation("com.google.accompanist:accompanist-permissions:0.31.5-beta")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+
 }
 
