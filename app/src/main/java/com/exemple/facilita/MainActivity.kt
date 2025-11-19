@@ -329,24 +329,25 @@ fun AppNavHost(navController: NavHostController) {
                         servicoDetalhe = servicoState.servico!!
                     )
                 }
-                servicoState.error != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = servicoState.error ?: "Erro desconhecido",
-                                color = Color.Red
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    }
-                }
             }
+        }
+
+        // Rota para chat ao vivo
+        composable("chat_ao_vivo/{servicoId}/{contratanteId}/{contratanteNome}/{prestadorId}/{prestadorNome}") { backStackEntry ->
+            val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+            val contratanteId = backStackEntry.arguments?.getString("contratanteId")?.toIntOrNull() ?: 0
+            val contratanteNome = URLDecoder.decode(backStackEntry.arguments?.getString("contratanteNome") ?: "", StandardCharsets.UTF_8.toString())
+            val prestadorId = backStackEntry.arguments?.getString("prestadorId")?.toIntOrNull() ?: 0
+            val prestadorNome = URLDecoder.decode(backStackEntry.arguments?.getString("prestadorNome") ?: "", StandardCharsets.UTF_8.toString())
+
+            TelaChatAoVivo(
+                navController = navController,
+                servicoId = servicoId,
+                contratanteId = contratanteId,
+                contratanteNome = contratanteNome,
+                prestadorId = prestadorId,
+                prestadorNome = prestadorNome
+            )
         }
 
     }

@@ -100,6 +100,11 @@ dependencies {
 
     implementation("com.google.maps.android:maps-compose:4.3.3")
 
+    // Socket.IO para chat em tempo real
+    implementation("io.socket:socket.io-client:2.1.0") {
+        exclude(group = "org.json", module = "json")
+    }
+
     // Socket.IO para WebSocket
     implementation("io.socket:socket.io-client:2.1.0")
 
