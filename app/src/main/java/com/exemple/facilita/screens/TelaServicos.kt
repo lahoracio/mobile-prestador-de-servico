@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,12 +15,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -73,7 +76,14 @@ fun TelaServicos(
                     response: Response<com.exemple.facilita.service.ServicosResponse>
                 ) {
                     if (response.isSuccessful) {
-                        servicosEmAndamento = response.body()?.servicos ?: emptyList()
+                        // Filtrar APENAS serviços em andamento
+                        val todosServicos = response.body()?.data ?: emptyList()
+                        servicosEmAndamento = todosServicos.filter { it.status == "EM_ANDAMENTO" }
+
+                        android.util.Log.d("TelaServicos", "✅ Total de serviços: ${todosServicos.size}")
+                        android.util.Log.d("TelaServicos", "✅ Serviços EM ANDAMENTO: ${servicosEmAndamento.size}")
+                    } else {
+                        android.util.Log.e("TelaServicos", "❌ Erro ${response.code()}: ${response.errorBody()?.string()}")
                     }
                     isLoading = false
                 }
@@ -236,154 +246,180 @@ fun ServicoEmAndamentoCard(
     textSecondary: Color
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(onClick = onClick)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = primaryGreen.copy(alpha = 0.25f)
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
-            // Header com status e valor
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Box {
+            // Barra colorida lateral
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .height(120.dp)
+                    .align(Alignment.CenterStart)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            listOf(primaryGreen, Color(0xFF06C755))
+                        ),
+                        shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
             ) {
+                // Header com código e status
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Código",
+                            tint = primaryGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "#${servico.id}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textPrimary
+                        )
+                    }
+
+                    // Status Badge com gradiente
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
-                            .background(primaryGreen, CircleShape)
-                    )
-                    Text(
-                        "#${servico.id}",
-                        fontWeight = FontWeight.Bold,
-                        color = textPrimary,
-                        fontSize = 16.sp
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = primaryGreen.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, primaryGreen.copy(alpha = 0.3f))
-                ) {
-                    Text(
-                        "R$ ${servico.valor}",
-                        color = primaryGreen,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Cliente
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(primaryGreen.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = primaryGreen,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Column {
-                    Text("Cliente", color = textSecondary, fontSize = 11.sp)
-                    Text(
-                        servico.contratante.usuario.nome,
-                        color = textPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Serviço
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(primaryGreen.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Build,
-                        contentDescription = null,
-                        tint = primaryGreen,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Serviço", color = textSecondary, fontSize = 11.sp)
-                    Text(
-                        servico.descricao,
-                        color = textPrimary,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        maxLines = 2
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Footer com localização
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                servico.localizacao?.let { loc ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.weight(1f)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(primaryGreen, Color(0xFF06C755))
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = primaryGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
                         Text(
-                            loc.cidade,
-                            color = textSecondary,
+                            text = "Em andamento",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             fontSize = 12.sp,
-                            maxLines = 1
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Ver detalhes",
-                    tint = primaryGreen,
-                    modifier = Modifier.size(24.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Informações do cliente e serviço
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Ícone do cliente
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .border(
+                                width = 2.dp,
+                                brush = Brush.linearGradient(
+                                    listOf(primaryGreen, Color(0xFF06C755))
+                                ),
+                                shape = CircleShape
+                            )
+                            .padding(3.dp)
+                            .background(
+                                color = primaryGreen.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Cliente",
+                            tint = primaryGreen,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = servico.categoria.nome,
+                            fontSize = 12.sp,
+                            color = textSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = servico.contratante.usuario.nome,
+                            fontSize = 16.sp,
+                            color = textPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = servico.descricao,
+                            fontSize = 13.sp,
+                            color = textSecondary,
+                            maxLines = 1
+                        )
+
+                        // Valor com gradiente
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(primaryGreen, Color(0xFF06C755))
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "R$ ${servico.valor}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Footer com ícone de toque
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Toque para ver detalhes",
+                        fontSize = 11.sp,
+                        color = primaryGreen,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Ver detalhes",
+                        tint = primaryGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }

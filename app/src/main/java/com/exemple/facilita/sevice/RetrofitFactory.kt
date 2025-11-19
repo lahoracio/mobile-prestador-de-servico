@@ -31,7 +31,7 @@ object RetrofitFactory {
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-       .baseUrl("https://servidor-facilita.onrender.com/")
+       .baseUrl("https://facilita-c6hhb9csgygudrdz.canadacentral-01.azurewebsites.net/")
        .client(okHttpClient) // Adicionar o client configurado
        .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
