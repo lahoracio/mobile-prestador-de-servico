@@ -198,8 +198,13 @@ fun TelaDetalhesServicoAceito(
                                 val servicoId = servicoDetalhe.id
                                 val contratanteId = servicoDetalhe.contratante.id
                                 val contratanteNome = java.net.URLEncoder.encode(servicoDetalhe.contratante.usuario.nome, "UTF-8")
-                                val prestadorId = servicoDetalhe.prestador?.id ?: 0
-                                val prestadorNome = java.net.URLEncoder.encode(servicoDetalhe.prestador?.usuario?.nome ?: "Prestador", "UTF-8")
+
+                                // Buscar ID e nome do prestador LOGADO (não do serviço)
+                                val prestadorId = com.exemple.facilita.utils.TokenManager.obterUsuarioId(context) ?: 0
+                                val prestadorNome = java.net.URLEncoder.encode(
+                                    com.exemple.facilita.utils.TokenManager.obterNomeUsuario(context) ?: "Prestador",
+                                    "UTF-8"
+                                )
 
                                 android.util.Log.d("TelaDetalhes", "🔗 Navegando para chat: servicoId=$servicoId, contratanteId=$contratanteId, prestadorId=$prestadorId")
 

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,7 +65,7 @@ fun TelaChatAoVivo(
     // Estados
     var messageText by remember { mutableStateOf("") }
     val chatRepository = remember { com.exemple.facilita.data.ChatRepository(context) }
-    var messages by remember { mutableStateOf(chatRepository.loadMessages(servicoId)) }
+    val messages = remember { mutableStateListOf<ChatMessage>().apply { addAll(chatRepository.loadMessages(servicoId)) } }
     var isConnected by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
@@ -99,11 +100,11 @@ fun TelaChatAoVivo(
             onMessageReceived = { message ->
                 android.util.Log.d("TelaChatAoVivo", "📩 Mensagem recebida no UI: ${message.mensagem}")
 
-                // Adicionar à lista e salvar localmente
-                messages = messages + message
-                chatRepository.saveMessages(servicoId, messages)
-
+                // Adicionar à lista e salvar localmente (garantir main thread)
                 scope.launch {
+                    messages.add(message)
+                    chatRepository.saveMessages(servicoId, messages.toList())
+
                     if (messages.isNotEmpty()) {
                         listState.animateScrollToItem(messages.size - 1)
                     }
@@ -138,7 +139,7 @@ fun TelaChatAoVivo(
         onDispose {
             android.util.Log.d("TelaChatAoVivo", "📴 Saindo da tela (conexão mantida)")
             // Salvar mensagens ao sair
-            chatRepository.saveMessages(servicoId, messages)
+            chatRepository.saveMessages(servicoId, messages.toList())
         }
     }
 
@@ -228,7 +229,7 @@ fun TelaChatAoVivo(
                                     targetUserId = contratanteId,
                                     onSuccess = {
                                         // Mensagem enviada com sucesso
-                                        android.util.Log.d("TelaChatAoVivo", "✅ Mensagem enviada com sucesso!")
+                                        android.util.Log.d("TelaChatAoVivo", "✅ Mensagem enviada! Aguardando broadcast...")
                                     },
                                     onError = { error ->
                                         // Erro ao enviar
@@ -237,23 +238,8 @@ fun TelaChatAoVivo(
                                     }
                                 )
 
-                                // Adicionar mensagem localmente e salvar
-                                val newMessage = ChatMessage(
-                                    servicoId = servicoId,
-                                    mensagem = mensagemParaEnviar,
-                                    sender = "prestador",
-                                    userName = prestadorNome,
-                                    timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
-                                )
-                                messages = messages + newMessage
-                                chatRepository.saveMessages(servicoId, messages)
-
-                                scope.launch {
-                                    if (messages.isNotEmpty()) {
-                                        listState.animateScrollToItem(messages.size - 1)
-                                    }
-                                }
-
+                                // NÃO adicionar localmente - o broadcast do servidor já vai adicionar
+                                // Isso evita mensagens duplicadas
                                 messageText = ""
                             }
                         },
@@ -423,11 +409,18 @@ fun MessageBubble(
 
 fun formatTimestamp(timestamp: String): String {
     return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        // Input format: timestamp vem em UTC (ISO 8601)
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+
+        // Output format: horário local do dispositivo
         val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
         val date = inputFormat.parse(timestamp)
         date?.let { outputFormat.format(it) } ?: "Agora"
     } catch (e: Exception) {
+        android.util.Log.e("TelaChatAoVivo", "Erro ao formatar timestamp: ${e.message}")
         "Agora"
     }
 }

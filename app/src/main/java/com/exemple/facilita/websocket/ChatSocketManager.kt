@@ -1,5 +1,7 @@
 package com.exemple.facilita.websocket
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.exemple.facilita.model.ChatMessage
 import io.socket.client.IO
@@ -31,6 +33,7 @@ class ChatSocketManager private constructor() {
     private var currentServiceId: Int? = null
     private var messageCallback: ((ChatMessage) -> Unit)? = null
     private var errorCallback: ((String) -> Unit)? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun connect(
         userId: Int,
@@ -94,7 +97,9 @@ class ChatSocketManager private constructor() {
             socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 val error = if (args.isNotEmpty()) args[0].toString() else "Erro desconhecido"
                 Log.e(TAG, "❌ Erro ao conectar: $error")
-                errorCallback?.invoke("Erro ao conectar: $error")
+                mainHandler.post {
+                    errorCallback?.invoke("Erro ao conectar: $error")
+                }
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -104,7 +109,13 @@ class ChatSocketManager private constructor() {
             socket?.on("receive_message") { args ->
                 try {
                     val data = args[0] as JSONObject
-                    Log.d(TAG, "📥 Mensagem recebida: $data")
+                    Log.d(TAG, "")
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "📥 MENSAGEM RECEBIDA DO SERVIDOR")
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, data.toString(2))
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "")
 
                     val message = ChatMessage(
                         servicoId = data.getInt("servicoId"),
@@ -113,26 +124,90 @@ class ChatSocketManager private constructor() {
                         userName = data.optString("userName", "Usuário"),
                         timestamp = data.optString("timestamp", "")
                     )
-                    messageCallback?.invoke(message)
+
+                    Log.d(TAG, "📨 Entregando mensagem para UI:")
+                    Log.d(TAG, "   Sender: ${message.sender}")
+                    Log.d(TAG, "   UserName: ${message.userName}")
+                    Log.d(TAG, "   Mensagem: ${message.mensagem}")
+
+                    // Executar callback na Main Thread
+                    mainHandler.post {
+                        messageCallback?.invoke(message)
+                        Log.d(TAG, "✅ Mensagem entregue ao callback na Main Thread")
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "❌ Erro ao processar mensagem recebida: ${e.message}")
-                    errorCallback?.invoke("Erro ao processar mensagem: ${e.message}")
+                    e.printStackTrace()
+                    mainHandler.post {
+                        errorCallback?.invoke("Erro ao processar mensagem: ${e.message}")
+                    }
                 }
             }
 
             socket?.on("message_sent") { args ->
                 try {
                     val data = args[0] as JSONObject
-                    Log.d(TAG, "✅ Confirmação de mensagem enviada: $data")
+                    Log.d(TAG, "")
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "✅ CONFIRMAÇÃO: MENSAGEM ENVIADA COM SUCESSO")
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, data.toString(2))
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "")
                 } catch (e: Exception) {
                     Log.e(TAG, "Erro ao processar confirmação: ${e.message}")
+                }
+            }
+
+            // Listener para qualquer evento genérico (debug)
+            socket?.on("message") { args ->
+                Log.d(TAG, "📬 Evento genérico 'message': ${args.joinToString()}")
+            }
+
+            // Listener para broadcast de mensagens (evento que o servidor realmente envia)
+            socket?.on("new_message") { args ->
+                try {
+                    val data = args[0] as JSONObject
+                    Log.d(TAG, "")
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "📣 BROADCAST: NOVA MENSAGEM")
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, data.toString(2))
+                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "")
+
+                    // Processar e entregar para UI
+                    val senderInfo = data.optJSONObject("senderInfo")
+                    val message = ChatMessage(
+                        servicoId = data.getInt("servicoId"),
+                        mensagem = data.getString("mensagem"),
+                        sender = data.getString("sender"),
+                        userName = senderInfo?.optString("userName") ?: "Usuário",
+                        timestamp = data.optString("timestamp", "")
+                    )
+
+                    Log.d(TAG, "📨 Processando broadcast para UI:")
+                    Log.d(TAG, "   Sender: ${message.sender}")
+                    Log.d(TAG, "   UserName: ${message.userName}")
+                    Log.d(TAG, "   Mensagem: ${message.mensagem}")
+
+                    // Executar callback na Main Thread
+                    mainHandler.post {
+                        messageCallback?.invoke(message)
+                        Log.d(TAG, "✅ Broadcast entregue ao callback na Main Thread")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Erro ao processar new_message: ${e.message}")
+                    e.printStackTrace()
                 }
             }
 
             socket?.on("error") { args ->
                 val error = if (args.isNotEmpty()) args[0].toString() else "Erro desconhecido do servidor"
                 Log.e(TAG, "❌ Erro do servidor: $error")
-                errorCallback?.invoke(error)
+                mainHandler.post {
+                    errorCallback?.invoke(error)
+                }
             }
 
             socket?.connect()
@@ -148,32 +223,69 @@ class ChatSocketManager private constructor() {
     }
 
     fun sendMessage(servicoId: Int, mensagem: String, targetUserId: Int, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        Log.d(TAG, "📤 Tentando enviar mensagem...")
-        Log.d(TAG, "   Socket conectado? ${socket?.connected()}")
-        Log.d(TAG, "   ServiceId: $servicoId, TargetUserId: $targetUserId")
-        Log.d(TAG, "   Mensagem: $mensagem")
+        Log.d(TAG, "")
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "📤 ENVIANDO MENSAGEM VIA WEBSOCKET")
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "🔍 Socket conectado? ${socket?.connected()}")
+        Log.d(TAG, "🔍 Socket existe? ${socket != null}")
+        Log.d(TAG, "📋 ServiceId: $servicoId")
+        Log.d(TAG, "👤 TargetUserId: $targetUserId")
+        Log.d(TAG, "👤 CurrentUserId: $currentUserId")
+        Log.d(TAG, "📝 Sender: ${currentUserType ?: "prestador"}")
+        Log.d(TAG, "💬 Mensagem: \"$mensagem\"")
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         if (socket?.connected() == true) {
             try {
+                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
+
                 val payload = JSONObject().apply {
                     put("servicoId", servicoId)
                     put("mensagem", mensagem)
                     put("sender", currentUserType ?: "prestador")
                     put("targetUserId", targetUserId)
+                    put("userId", currentUserId)
+                    put("userName", currentUserName)
+                    put("timestamp", timestamp)
                 }
 
-                Log.d(TAG, "📤 Emitindo send_message com payload: $payload")
+                Log.d(TAG, "📦 Payload completo:")
+                Log.d(TAG, payload.toString(2))
+                Log.d(TAG, "")
+                Log.d(TAG, "🚀 Emitindo evento 'send_message'...")
+
+                // Emitir evento
                 socket?.emit("send_message", payload)
-                Log.d(TAG, "✅ Mensagem enviada com sucesso!")
+
+                Log.d(TAG, "✅ socket.emit() executado!")
+                Log.d(TAG, "⏳ Aguardando confirmação do servidor...")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(TAG, "")
+
                 onSuccess()
             } catch (e: Exception) {
                 val errorMsg = "Erro ao enviar mensagem: ${e.message}"
+                Log.e(TAG, "")
+                Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.e(TAG, "❌ ERRO AO ENVIAR MENSAGEM")
+                Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
                 Log.e(TAG, errorMsg, e)
+                Log.e(TAG, "Stack trace:")
+                e.printStackTrace()
+                Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                Log.e(TAG, "")
                 onError(errorMsg)
             }
         } else {
             val errorMsg = "Socket não está conectado (conectado=${socket?.connected()})"
-            Log.e(TAG, "❌ $errorMsg")
+            Log.e(TAG, "")
+            Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.e(TAG, "❌ SOCKET NÃO CONECTADO")
+            Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.e(TAG, errorMsg)
+            Log.e(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.e(TAG, "")
             onError(errorMsg)
         }
     }
@@ -189,6 +301,7 @@ class ChatSocketManager private constructor() {
         currentServiceId = null
         messageCallback = null
         errorCallback = null
+        mainHandler.removeCallbacksAndMessages(null)
         Log.d(TAG, "✅ Socket desconectado e limpo")
     }
 
