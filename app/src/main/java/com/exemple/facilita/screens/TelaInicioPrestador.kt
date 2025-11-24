@@ -126,6 +126,9 @@ fun TelaInicioPrestador(
     var animateBalance by remember { mutableStateOf(false) }
     var mostrarSaldo by remember { mutableStateOf(false) }
 
+    // Set para armazenar IDs de serviços recusados (persiste durante a sessão)
+    val servicosRecusados = remember { mutableStateSetOf<Int>() }
+
     val token = TokenManager.obterTokenComBearer(context) ?: ""
 
     // Obter dados reais do usuário logado
@@ -171,7 +174,10 @@ fun TelaInicioPrestador(
                     override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
                         if (response.isSuccessful) {
                             val data = response.body()?.data ?: emptyList()
-                            listaSolicitacoes = data.map { servico ->
+                            // Filtrar serviços recusados antes de mapear
+                            listaSolicitacoes = data
+                                .filter { servico -> servico.id !in servicosRecusados }
+                                .map { servico ->
                                 // Montar localização de forma mais completa
                                 val localizacao = servico.localizacao?.let { loc ->
                                     buildString {
@@ -388,8 +394,11 @@ fun TelaInicioPrestador(
                                         navController = navController,
                                         servicoViewModel = servicoViewModel,
                                         onRecusar = { id ->
+                                            // Adicionar ao Set de recusados (persiste durante a sessão)
+                                            servicosRecusados.add(id)
                                             // Remover da lista
                                             listaSolicitacoes = listaSolicitacoes.filter { it.id != id }
+                                            android.util.Log.d("TelaInicioPrestador", "✅ Serviço $id recusado. Total recusados: ${servicosRecusados.size}")
                                         }
                                     )
                                 }
