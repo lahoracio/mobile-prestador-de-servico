@@ -31,6 +31,12 @@ interface ServicoService {
         @Header("Authorization") token: String
     ): Call<ServicosResponse>
 
+    @GET("v1/facilita/servico/{id}")
+    suspend fun getServicoPorId(
+        @Header("Authorization") token: String,
+        @Path("id") idServico: Int
+    ): Response<ServicoDetalheResponse>
+
     @GET("v1/facilita/servico/prestador/pedidos")
     fun getHistoricoPedidos(
         @Header("Authorization") token: String,
@@ -56,6 +62,12 @@ data class AceitarServicoApiResponse(
 data class ServicosResponse(
     val status_code: Int,
     val data: List<com.exemple.facilita.model.ServicoDetalhe>
+)
+
+// Model para resposta de serviço único por ID
+data class ServicoDetalheResponse(
+    val status_code: Int,
+    val data: com.exemple.facilita.model.ServicoDetalhe
 )
 
 // Model para resposta de histórico de pedidos

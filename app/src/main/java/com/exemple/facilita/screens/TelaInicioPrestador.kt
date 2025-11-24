@@ -44,6 +44,7 @@ import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
 import com.exemple.facilita.viewmodel.ServicoViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -154,68 +155,81 @@ fun TelaInicioPrestador(
     }
 
     // Buscar solicitações da API com atualização automática a cada 10 segundos
-    LaunchedEffect(Unit) {
+    LaunchedEffect(token) {
+        if (token.isEmpty()) {
+            isLoading = false
+            return@LaunchedEffect
+        }
+
         fun buscarSolicitacoes() {
-            val service = RetrofitFactory.getServicoService()
-            service.getServicosDisponiveis(token).enqueue(object : Callback<ApiResponse> {
-                override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
-                    if (response.isSuccessful) {
-                        val data = response.body()?.data ?: emptyList()
-                        listaSolicitacoes = data.map { servico ->
-                            // Montar localização de forma mais completa
-                            val localizacao = servico.localizacao?.let { loc ->
-                                buildString {
-                                    if (!loc.logradouro.isNullOrBlank()) {
-                                        append(loc.logradouro)
-                                    }
-                                    if (!loc.numero.isNullOrBlank()) {
-                                        if (isNotEmpty()) append(", ")
-                                        append(loc.numero)
-                                    }
-                                    if (!loc.bairro.isNullOrBlank()) {
-                                        if (isNotEmpty()) append(" - ")
-                                        append(loc.bairro)
-                                    }
-                                    if (!loc.cidade.isNullOrBlank()) {
-                                        if (isNotEmpty()) append(", ")
-                                        append(loc.cidade)
-                                    }
-                                    // Se nada foi adicionado, tenta o bairro ou cidade
-                                    if (isEmpty()) {
-                                        append(loc.bairro ?: loc.cidade ?: "Localização disponível")
-                                    }
-                                }
-                            } ?: "Não informado"
+            try {
+                val service = RetrofitFactory.getServicoService()
+                val call = service.getServicosDisponiveis(token)
 
-                            Solicitacao(
-                                id = servico.id,
-                                numero = servico.id,
-                                cliente = servico.contratante.usuario.nome,
-                                servico = servico.descricao,
-                                distancia = localizacao,
-                                horario = servico.data_solicitacao.substring(11, 16),
-                                valor = "R$ ${servico.valor}"
-                            )
+                // .enqueue() já executa em background thread automaticamente
+                call.enqueue(object : Callback<ApiResponse> {
+                    override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
+                        if (response.isSuccessful) {
+                            val data = response.body()?.data ?: emptyList()
+                            listaSolicitacoes = data.map { servico ->
+                                // Montar localização de forma mais completa
+                                val localizacao = servico.localizacao?.let { loc ->
+                                    buildString {
+                                        if (!loc.logradouro.isNullOrBlank()) {
+                                            append(loc.logradouro)
+                                        }
+                                        if (!loc.numero.isNullOrBlank()) {
+                                            if (isNotEmpty()) append(", ")
+                                            append(loc.numero)
+                                        }
+                                        if (!loc.bairro.isNullOrBlank()) {
+                                            if (isNotEmpty()) append(" - ")
+                                            append(loc.bairro)
+                                        }
+                                        if (!loc.cidade.isNullOrBlank()) {
+                                            if (isNotEmpty()) append(", ")
+                                            append(loc.cidade)
+                                        }
+                                        // Se nada foi adicionado, tenta o bairro ou cidade
+                                        if (isEmpty()) {
+                                            append(loc.bairro ?: loc.cidade ?: "Localização disponível")
+                                        }
+                                    }
+                                } ?: "Não informado"
+
+                                Solicitacao(
+                                    id = servico.id,
+                                    numero = servico.id,
+                                    cliente = servico.contratante.usuario.nome,
+                                    servico = servico.descricao,
+                                    distancia = localizacao,
+                                    horario = servico.data_solicitacao.substring(11, 16),
+                                    valor = "R$ ${servico.valor}"
+                                )
+                            }
                         }
+                        isLoading = false
                     }
-                    isLoading = false
-                }
 
-                override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
-                    // Não mostrar toast em atualizações automáticas, apenas na primeira
-                    if (isLoading) {
-                        Toast.makeText(context, "Erro: ${t.message}", Toast.LENGTH_SHORT).show()
+                    override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
+                        // Não mostrar toast em atualizações automáticas, apenas na primeira
+                        if (isLoading) {
+                            Toast.makeText(context, "Erro: ${t.message}", Toast.LENGTH_SHORT).show()
+                        }
+                        isLoading = false
                     }
-                    isLoading = false
-                }
-            })
+                })
+            } catch (e: Exception) {
+                android.util.Log.e("TelaInicioPrestador", "Erro ao buscar solicitações: ${e.message}")
+                isLoading = false
+            }
         }
 
         // Busca inicial
         buscarSolicitacoes()
 
         // Atualização automática a cada 10 segundos
-        while (true) {
+        while (isActive) {
             delay(10000) // 10 segundos
             buscarSolicitacoes()
         }

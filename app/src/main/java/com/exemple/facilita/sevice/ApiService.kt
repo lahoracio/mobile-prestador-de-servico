@@ -9,3 +9,4 @@ interface ApiService {
     @GET("v1/facilita/usuario/perfil")
     suspend fun getProfile(@Header("Authorization") token: String): Response<PerfilViewModel.ProfileResponse>
 }
+

@@ -1,7 +1,7 @@
 package com.exemple.facilita.service
 
 import com.exemple.facilita.sevice.UserService
-import com.google.firebase.appdistribution.gradle.ApiService
+import com.google.gson.FieldNamingPolicy
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -15,6 +15,7 @@ object RetrofitFactory {
    private val gson = GsonBuilder()
         .serializeNulls()
         .setLenient()
+        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
         .create()
 
     // Configurar logging interceptor para debug
@@ -22,12 +23,16 @@ object RetrofitFactory {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // Configurar OkHttpClient com timeouts aumentados
+    // Configurar OkHttpClient com timeouts aumentados e dispatcher customizado
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS) // Timeout de conexão: 60 segundos
         .readTimeout(60, TimeUnit.SECONDS)    // Timeout de leitura: 60 segundos
         .writeTimeout(60, TimeUnit.SECONDS)   // Timeout de escrita: 60 segundos
-        .addInterceptor(loggingInterceptor)   // Adicionar logging
+        .addInterceptor(loggingInterceptor)   // Adicionar logging para ver o JSON
+        .dispatcher(okhttp3.Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 5
+        })
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
@@ -36,9 +41,6 @@ object RetrofitFactory {
        .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
-    val apiService: ApiService by lazy {
-        retrofit.create(ApiService::class.java)
-    }
 
     // Mantém o UserService existente para não quebrar outras partes do app
     val userService: UserService by lazy {

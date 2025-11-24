@@ -9,6 +9,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface UserService {
@@ -45,5 +46,17 @@ interface UserService {
     suspend fun criarLocalizacao(
         @Body request: LocalizacaoRequest
     ): Response<LocalizacaoResponse>
+
+    @GET("v1/facilita/usuario/perfil")
+    suspend fun obterPerfil(
+        @Header("Authorization") token: String
+    ): Response<PerfilPrestadorResponse>
+
+    @Headers("Content-Type: application/json")
+    @PUT("v1/facilita/usuario/perfil")
+    suspend fun atualizarPerfil(
+        @Header("Authorization") token: String,
+        @Body request: AtualizarPerfilRequest
+    ): Response<AtualizarPerfilResponse>
 
 }

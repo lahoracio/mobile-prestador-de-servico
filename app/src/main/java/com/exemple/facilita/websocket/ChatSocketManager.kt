@@ -11,7 +11,8 @@ class ChatSocketManager private constructor() {
 
     companion object {
         private const val TAG = "ChatSocketManager"
-        private const val SOCKET_URL = "https://servidor-facilita.onrender.com"
+        // URL correta do servidor WebSocket no Azure
+        private const val SOCKET_URL = "wss://facilita-c6hhb9csgygudrdz.canadacentral-01.azurewebsites.net"
 
         @Volatile
         private var instance: ChatSocketManager? = null
@@ -54,15 +55,24 @@ class ChatSocketManager private constructor() {
         }
 
         try {
+            Log.d(TAG, "🔧 Configurando Socket.IO...")
+            Log.d(TAG, "   URL: $SOCKET_URL")
+            Log.d(TAG, "   UserId: $userId")
+            Log.d(TAG, "   UserType: $userType")
+            Log.d(TAG, "   UserName: $userName")
+            Log.d(TAG, "   ServicoId: $servicoId")
+
             val options = IO.Options().apply {
                 transports = arrayOf("websocket")
                 reconnection = true
                 reconnectionAttempts = Int.MAX_VALUE
                 reconnectionDelay = 1000
                 reconnectionDelayMax = 5000
+                timeout = 10000
             }
 
             socket = IO.socket(SOCKET_URL, options)
+            Log.d(TAG, "✅ Socket criado com sucesso")
 
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "✅ Socket conectado com sucesso")

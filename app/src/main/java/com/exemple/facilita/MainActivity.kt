@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -220,12 +221,13 @@ fun AppNavHost(navController: NavHostController) {
         // Rota para tela de detalhes do serviço aceito
         composable("tela_detalhes_servico_aceito/{servicoId}") { backStackEntry ->
             val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+            val context = LocalContext.current
 
             // Observar o estado do serviço
             val servicoState by servicoViewModel.servicoState.collectAsState()
 
             LaunchedEffect(servicoId) {
-                servicoViewModel.carregarServico(servicoId)
+                servicoViewModel.carregarServico(servicoId, context)
             }
 
             when {
@@ -266,12 +268,13 @@ fun AppNavHost(navController: NavHostController) {
         // Rota para tela de mapa com rota (estilo Uber)
         composable("tela_mapa_rota/{servicoId}") { backStackEntry ->
             val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+            val context = LocalContext.current
 
             // Observar o estado do serviço
             val servicoState by servicoViewModel.servicoState.collectAsState()
 
             LaunchedEffect(servicoId) {
-                servicoViewModel.carregarServico(servicoId)
+                servicoViewModel.carregarServico(servicoId, context)
             }
 
             when {
@@ -312,12 +315,13 @@ fun AppNavHost(navController: NavHostController) {
         // Rota para tela de rastreamento em tempo real
         composable("tela_rastreamento_servico/{servicoId}") { backStackEntry ->
             val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+            val context = LocalContext.current
 
             // Observar o estado do serviço
             val servicoState by servicoViewModel.servicoState.collectAsState()
 
             LaunchedEffect(servicoId) {
-                servicoViewModel.carregarServico(servicoId)
+                servicoViewModel.carregarServico(servicoId, context)
             }
 
             when {

@@ -356,6 +356,17 @@ fun TelaLogin(navController: NavController) {
                                                 nomeUsuario
                                             )
 
+                                            // Salvar dados adicionais do usuário para o perfil
+                                            val prefs = context.getSharedPreferences("FacilitaPrefs", android.content.Context.MODE_PRIVATE)
+                                            prefs.edit().apply {
+                                                putString("email", response.usuario.email)
+                                                putString("celular", response.usuario.celular)
+                                                apply()
+                                            }
+
+                                            Log.d("LOGIN_DEBUG", "Email salvo: ${response.usuario.email}")
+                                            Log.d("LOGIN_DEBUG", "Celular salvo: ${response.usuario.celular}")
+
                                             val tokenSalvo = TokenManager.obterToken(context)
                                             val tipoContaSalvo =
                                                 TokenManager.obterTipoConta(context)
