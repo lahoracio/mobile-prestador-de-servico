@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.exemple.facilita.components.BottomNavBar
 import com.exemple.facilita.service.ApiResponse
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
@@ -87,12 +88,20 @@ fun TelaInicioPrestador() {
     val textColorPrimary = Color(0xFF212121)
     val textColorSecondary = Color(0xFF757575)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-            .padding(vertical = 12.dp)
-    ) {
+    Scaffold(
+        bottomBar = {
+            if (navController != null) {
+                BottomNavBar(navController)
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(backgroundColor)
+                .padding(vertical = 12.dp)
+        ) {
         // 🔹 Header
         Row(
             modifier = Modifier
@@ -210,6 +219,7 @@ fun TelaInicioPrestador() {
                     }
                 }
             }
+        }
         }
     }
 }
