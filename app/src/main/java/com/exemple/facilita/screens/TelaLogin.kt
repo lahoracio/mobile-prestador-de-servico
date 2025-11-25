@@ -381,7 +381,22 @@ fun TelaLogin(navController: NavController) {
                                             )
                                             Log.d("LOGIN_DEBUG", "Nome salvo: $nomeSalvo")
 
-                                            navController.navigate("tela_inicio_prestador")
+                                            // Redirecionar baseado no tipo de conta
+                                            when (tipoConta) {
+                                                "PRESTADOR" -> {
+                                                    navController.navigate("tela_inicio_prestador") {
+                                                        popUpTo("tela_login") { inclusive = true }
+                                                    }
+                                                }
+                                                "CONTRATANTE" -> {
+                                                    navController.navigate("tela_perfil") {
+                                                        popUpTo("tela_login") { inclusive = true }
+                                                    }
+                                                }
+                                                else -> {
+                                                    navController.navigate("tela_inicio_prestador")
+                                                }
+                                            }
                                         }
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {

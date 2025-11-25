@@ -69,8 +69,12 @@ fun BottomNavBar(navController: NavController) {
                         onClick = {
                             if (currentRoute != item.route) {
                                 navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId)
+                                    // Pop até a tela home para manter apenas as telas principais na pilha
+                                    popUpTo("tela_home") {
+                                        saveState = true
+                                    }
                                     launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
                         },
