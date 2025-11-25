@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,9 +25,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.exemple.facilita.model.ServicoDetalhe
+import com.exemple.facilita.service.LocationUpdate
 import com.exemple.facilita.utils.TokenManager
 import com.exemple.facilita.viewmodel.RastreamentoViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -48,12 +51,12 @@ fun TelaRastreamentoServico(
     val primaryGreen = Color(0xFF019D31)
 
     // Estados
-    val myLocation by rastreamentoViewModel.myLocation.collectAsState()
-    val otherUserLocation by rastreamentoViewModel.otherUserLocation.collectAsState()
-    val isConnected by rastreamentoViewModel.isConnected.collectAsState()
-    val connectionStatus by rastreamentoViewModel.connectionStatus.collectAsState()
-    val isTracking by rastreamentoViewModel.isTracking.collectAsState()
-    val lastUpdate by rastreamentoViewModel.lastUpdate.collectAsState()
+    val myLocation by rastreamentoViewModel.myLocation.collectAsStateWithLifecycle()
+    val otherUserLocation by rastreamentoViewModel.otherUserLocation.collectAsStateWithLifecycle()
+    val isConnected by rastreamentoViewModel.isConnected.collectAsStateWithLifecycle()
+    val connectionStatus by rastreamentoViewModel.connectionStatus.collectAsStateWithLifecycle()
+    val isTracking by rastreamentoViewModel.isTracking.collectAsStateWithLifecycle()
+    val lastUpdateState: LocationUpdate? by rastreamentoViewModel.lastUpdate.collectAsStateWithLifecycle()
 
     // Posição inicial do mapa (localização do serviço ou São Paulo)
     val initialPosition = servicoDetalhe.localizacao?.let {
@@ -149,7 +152,7 @@ fun TelaRastreamentoServico(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Voltar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -195,7 +198,7 @@ fun TelaRastreamentoServico(
                 otherUserLocation?.let { location ->
                     Marker(
                         state = MarkerState(position = location),
-                        title = lastUpdate?.prestadorName ?: "Outro usuário",
+                        title = lastUpdateState?.prestadorName ?: "Outro usuário",
                         snippet = "Localização em tempo real",
                         icon = BitmapDescriptorFactory.defaultMarker(
                             BitmapDescriptorFactory.HUE_GREEN
@@ -229,7 +232,7 @@ fun TelaRastreamentoServico(
                     servicoDetalhe = servicoDetalhe,
                     myLocation = myLocation,
                     otherUserLocation = otherUserLocation,
-                    lastUpdate = lastUpdate,
+                    lastUpdate = lastUpdateState,
                     rastreamentoViewModel = rastreamentoViewModel,
                     primaryGreen = primaryGreen
                 )
@@ -265,7 +268,7 @@ fun InfoCard(
     servicoDetalhe: ServicoDetalhe,
     myLocation: LatLng?,
     otherUserLocation: LatLng?,
-    lastUpdate: com.exemple.facilita.service.LocationUpdate?,
+    lastUpdate: LocationUpdate?,
     rastreamentoViewModel: RastreamentoViewModel,
     primaryGreen: Color
 ) {
@@ -362,7 +365,7 @@ fun InfoCard(
             }
 
             // Última atualização
-            lastUpdate?.let { update ->
+            lastUpdate?.let { update: LocationUpdate ->
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -384,7 +387,11 @@ fun InfoCard(
                         )
                     }
                     Text(
-                        text = update.timestamp.substringAfter("T").substring(0, 8),
+                        text = try {
+                            update.timestamp.substringAfter("T").substring(0, 8)
+                        } catch (e: Exception) {
+                            "N/A"
+                        },
                         fontSize = 14.sp,
                         color = Color(0xFF757575)
                     )

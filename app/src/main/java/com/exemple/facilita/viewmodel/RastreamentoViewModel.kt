@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.exemple.facilita.service.LocationService
 import com.exemple.facilita.service.LocationUpdate
-import com.exemple.facilita.service.WebSocketService
+import com.exemple.facilita.service.WebSocketLocationService
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -22,7 +22,7 @@ class RastreamentoViewModel : ViewModel() {
         private const val TAG = "RastreamentoViewModel"
     }
 
-    private val webSocketService = WebSocketService.getInstance()
+    private val webSocketService = WebSocketLocationService.getInstance()
     private var locationService: LocationService? = null
     private var locationJob: Job? = null
 

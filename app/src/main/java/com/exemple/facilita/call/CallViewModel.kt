@@ -11,9 +11,12 @@ import org.webrtc.SurfaceViewRenderer
 import org.webrtc.SessionDescription
 
 class CallViewModel(
-    app: Application,
-    private val socket: WebSocketService
+    app: Application
 ) : AndroidViewModel(app) {
+
+    private val socket: WebSocketService by lazy {
+        WebSocketService()
+    }
 
     val callState = MutableLiveData("idle")
     val servicoId = MutableLiveData<Int>()

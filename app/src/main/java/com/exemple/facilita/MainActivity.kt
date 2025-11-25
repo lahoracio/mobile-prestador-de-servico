@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,7 +55,7 @@ fun AppNavHost(navController: NavHostController) {
 
     // 🔴 ADICIONE ESTES VIEWMODELS PARA CHAMADAS
     val callViewModel: CallViewModel = viewModel()
-    val webSocketService: WebSocketService = viewModel()
+    val webSocketService = remember { WebSocketService() }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val token = com.exemple.facilita.utils.TokenManager.obterTokenComBearer(context) ?: ""
