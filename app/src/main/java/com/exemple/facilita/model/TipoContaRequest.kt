@@ -17,11 +17,11 @@ data class PrestadorDetalhes(
     val id: Int,
     val id_usuario: Int,
     val usuario: Usuario? = null,
-    val localizacao: List<LocalizacaoPrestador>? = null,
-    val documento: List<Documento>? = null
+    val localizacao: List<LocalizacaoCadastro>? = null,
+    val documento: List<DocumentoCadastro>? = null
 )
 
-data class LocalizacaoPrestador(
+data class LocalizacaoCadastro(
     val id: Int? = null,
     val logradouro: String? = null,
     val numero: String? = null,
@@ -32,7 +32,7 @@ data class LocalizacaoPrestador(
     val longitude: String? = null
 )
 
-data class Documento(
+data class DocumentoCadastro(
     val id: Int? = null,
     val tipo_documento: String? = null,
     val valor: String? = null,

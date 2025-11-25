@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.exemple.facilita.model.AtualizarPerfilRequest
-import com.exemple.facilita.model.PerfilPrestadorResponse
+import com.exemple.facilita.model.PerfilPrestadorData
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
 import kotlinx.coroutines.Dispatchers
@@ -75,29 +75,40 @@ class PerfilPrestadorViewModel : ViewModel() {
 
 
                 if (response.isSuccessful && response.body() != null) {
-                    val perfil = response.body()!!
+                    val apiResponse = response.body()!!
+                    val perfil = apiResponse.data
 
                     Log.d(TAG, "")
                     Log.d(TAG, "✅ SUCESSO! Dados recebidos:")
                     Log.d(TAG, "╔════════════════════════════════════════")
+                    Log.d(TAG, "║ Status Code: ${apiResponse.statusCode}")
                     Log.d(TAG, "║ ID: ${perfil.id}")
                     Log.d(TAG, "║ Nome: ${perfil.nome}")
                     Log.d(TAG, "║ Email: ${perfil.email}")
-                    Log.d(TAG, "║ Celular: ${perfil.celular}")
+                    Log.d(TAG, "║ Telefone: ${perfil.telefone}")
                     Log.d(TAG, "║ Tipo Conta: ${perfil.tipoConta}")
-                    Log.d(TAG, "║ Status: ${perfil.status}")
+                    Log.d(TAG, "║ Foto Perfil: ${perfil.fotoPerfil ?: "NULL"}")
+                    Log.d(TAG, "║ Criado Em: ${perfil.criadoEm}")
 
-                    if (perfil.prestador != null) {
-                        Log.d(TAG, "║ Prestador:")
-                        Log.d(TAG, "║   - ID: ${perfil.prestador.id}")
-                        Log.d(TAG, "║   - Endereço: ${perfil.prestador.endereco}")
-                        Log.d(TAG, "║   - Cidade: ${perfil.prestador.cidade}")
-                        Log.d(TAG, "║   - Estado: ${perfil.prestador.estado}")
-                        Log.d(TAG, "║   - CNH: ${perfil.prestador.cnh}")
-                        Log.d(TAG, "║   - Tipo Veículo: ${perfil.prestador.tipoVeiculo}")
-                        Log.d(TAG, "║   - Placa: ${perfil.prestador.placaVeiculo}")
+                    if (perfil.dadosPrestador != null) {
+                        val dados = perfil.dadosPrestador
+                        Log.d(TAG, "║ Dados Prestador:")
+                        Log.d(TAG, "║   - ID: ${dados.id}")
+                        Log.d(TAG, "║   - Ativo: ${dados.ativo}")
+                        Log.d(TAG, "║   - Documentos: ${dados.documentos.size}")
+                        Log.d(TAG, "║   - CNH: ${dados.cnh.size}")
+                        Log.d(TAG, "║   - Modalidades: ${dados.modalidades.size}")
+                        Log.d(TAG, "║   - Localizações: ${dados.localizacoes.size}")
+
+                        if (dados.localizacoes.isNotEmpty()) {
+                            Log.d(TAG, "║   Localizações:")
+                            dados.localizacoes.forEachIndexed { index, loc ->
+                                Log.d(TAG, "║     [$index] ${loc.logradouro}, ${loc.numero} - ${loc.bairro}")
+                                Log.d(TAG, "║         ${loc.cidade} - CEP: ${loc.cep}")
+                            }
+                        }
                     } else {
-                        Log.d(TAG, "║ Prestador: NULL")
+                        Log.d(TAG, "║ Dados Prestador: NULL")
                     }
                     Log.d(TAG, "╚════════════════════════════════════════")
 
@@ -159,7 +170,7 @@ class PerfilPrestadorViewModel : ViewModel() {
         context: Context,
         nome: String? = null,
         email: String? = null,
-        celular: String? = null,
+        telefone: String? = null,
         endereco: String? = null,
         cidade: String? = null,
         estado: String? = null,
@@ -186,7 +197,7 @@ class PerfilPrestadorViewModel : ViewModel() {
                 val request = AtualizarPerfilRequest(
                     nome = nome,
                     email = email,
-                    celular = celular,
+                    telefone = telefone,
                     endereco = endereco,
                     cidade = cidade,
                     estado = estado
@@ -198,8 +209,8 @@ class PerfilPrestadorViewModel : ViewModel() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && response.body() != null) {
                         // Atualiza o estado com os novos dados
-                        val responseBody = response.body()
-                        val usuario = responseBody?.usuario
+                        val apiResponse = response.body()
+                        val usuario = apiResponse?.data
 
                         if (usuario != null) {
                             _uiState.value = PerfilUiState.Success(usuario)
@@ -232,7 +243,7 @@ class PerfilPrestadorViewModel : ViewModel() {
     sealed class PerfilUiState {
         object Idle : PerfilUiState()
         object Loading : PerfilUiState()
-        data class Success(val perfil: PerfilPrestadorResponse) : PerfilUiState()
+        data class Success(val perfil: PerfilPrestadorData) : PerfilUiState()
         data class Error(val message: String) : PerfilUiState()
     }
 }

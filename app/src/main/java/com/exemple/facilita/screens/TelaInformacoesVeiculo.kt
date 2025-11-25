@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.exemple.facilita.model.Modalidade
+import com.exemple.facilita.model.ModalidadeVeiculo
 import com.exemple.facilita.model.ModalidadeRequest
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
@@ -105,7 +105,7 @@ fun TelaInformacoesVeiculo(
                 val modalidades = veiculosInfo.entries.map { entry ->
                     val tipo = entry.key
                     val info = entry.value
-                    Modalidade(
+                    ModalidadeVeiculo(
                         tipo = tipo,
                         modelo_veiculo = info.modelo,
                         ano_veiculo = info.ano,

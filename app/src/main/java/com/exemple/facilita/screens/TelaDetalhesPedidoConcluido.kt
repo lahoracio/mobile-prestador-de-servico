@@ -45,13 +45,15 @@ fun TelaDetalhesPedidoConcluido(
     var animateContent by remember { mutableStateOf(false) }
     var showSuccessAnimation by remember { mutableStateOf(false) }
 
-    // Cores futuristas
-    val primaryGreen = Color(0xFF00FF88)
-    val darkBg = Color(0xFF0A0E27)
-    val cardBg = Color(0xFF1A1F3A)
-    val accentCyan = Color(0xFF00D9FF)
-    val accentPurple = Color(0xFF9D4EDD)
-    val successGreen = Color(0xFF00FF88)
+    // Cores tema LIGHT moderno
+    val primaryGreen = Color(0xFF00B14F)
+    val lightBg = Color(0xFFF5F7FA)
+    val cardBg = Color.White
+    val accentBlue = Color(0xFF2196F3)
+    val accentOrange = Color(0xFFFF9800)
+    val successGreen = Color(0xFF4CAF50)
+    val textPrimary = Color(0xFF212121)
+    val textSecondary = Color(0xFF757575)
 
     // Animação de entrada
     LaunchedEffect(Unit) {
@@ -91,7 +93,7 @@ fun TelaDetalhesPedidoConcluido(
                         "Pedido #${pedido.id}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = Color.White
+                        color = textPrimary
                     )
                 },
                 navigationIcon = {
@@ -99,105 +101,42 @@ fun TelaDetalhesPedidoConcluido(
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                             contentDescription = "Voltar",
-                            tint = Color.White
+                            tint = textPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = darkBg
+                    containerColor = Color.White
                 )
             )
         },
-        containerColor = darkBg
+        containerColor = lightBg
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(lightBg)
         ) {
-            // Background com efeitos futuristas
-            BackgroundEffects(rotation, pulseAlpha, primaryGreen, accentCyan, accentPurple)
-
             // Conteúdo principal
             LazyColumnContent(
                 pedido = pedido,
                 animateContent = animateContent,
                 showSuccessAnimation = showSuccessAnimation,
                 primaryGreen = primaryGreen,
-                darkBg = darkBg,
+                lightBg = lightBg,
                 cardBg = cardBg,
-                accentCyan = accentCyan,
-                accentPurple = accentPurple,
-                successGreen = successGreen
+                accentBlue = accentBlue,
+                accentOrange = accentOrange,
+                successGreen = successGreen,
+                textPrimary = textPrimary,
+                textSecondary = textSecondary
             )
         }
     }
 }
 
-@Composable
-private fun BackgroundEffects(
-    rotation: Float,
-    pulseAlpha: Float,
-    primaryGreen: Color,
-    accentCyan: Color,
-    accentPurple: Color
-) {
-    // Círculo rotativo de fundo
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .alpha(0.1f)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(400.dp)
-                .offset(x = (-100).dp, y = (-100).dp)
-                .rotate(rotation)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryGreen.copy(alpha = 0.3f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .size(300.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 100.dp, y = 100.dp)
-                .rotate(-rotation * 0.7f)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            accentCyan.copy(alpha = 0.3f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                )
-        )
-    }
-
-    // Grid de fundo
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .alpha(pulseAlpha * 0.1f)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        accentPurple.copy(alpha = 0.05f),
-                        Color.Transparent,
-                        primaryGreen.copy(alpha = 0.05f)
-                    )
-                )
-            )
-    )
-}
+// Função BackgroundEffects removida - usando tema light agora
 
 @Composable
 private fun LazyColumnContent(
@@ -205,11 +144,13 @@ private fun LazyColumnContent(
     animateContent: Boolean,
     showSuccessAnimation: Boolean,
     primaryGreen: Color,
-    darkBg: Color,
+    lightBg: Color,
     cardBg: Color,
-    accentCyan: Color,
-    accentPurple: Color,
-    successGreen: Color
+    accentBlue: Color,
+    accentOrange: Color,
+    successGreen: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Column(
         modifier = Modifier
@@ -227,7 +168,9 @@ private fun LazyColumnContent(
                 showSuccessAnimation = showSuccessAnimation,
                 successGreen = successGreen,
                 cardBg = cardBg,
-                pedido = pedido
+                pedido = pedido,
+                textPrimary = textPrimary,
+                textSecondary = textSecondary
             )
         }
 
@@ -237,7 +180,7 @@ private fun LazyColumnContent(
             enter = fadeIn(animationSpec = tween(600, delayMillis = 200)) +
                     slideInVertically(initialOffsetY = { 100 }, animationSpec = tween(600, delayMillis = 200))
         ) {
-            InfoPrincipaisCard(pedido, cardBg, primaryGreen, accentCyan)
+            InfoPrincipaisCard(pedido, cardBg, primaryGreen, accentBlue, textPrimary, textSecondary)
         }
 
         // Timeline de paradas
@@ -247,7 +190,7 @@ private fun LazyColumnContent(
                 enter = fadeIn(animationSpec = tween(600, delayMillis = 400)) +
                         slideInVertically(initialOffsetY = { 100 }, animationSpec = tween(600, delayMillis = 400))
             ) {
-                TimelineParadasCard(pedido.paradas, cardBg, primaryGreen, accentCyan)
+                TimelineParadasCard(pedido.paradas, cardBg, primaryGreen, accentBlue, textPrimary, textSecondary)
             }
         }
 
@@ -257,7 +200,7 @@ private fun LazyColumnContent(
             enter = fadeIn(animationSpec = tween(600, delayMillis = 600)) +
                     slideInVertically(initialOffsetY = { 100 }, animationSpec = tween(600, delayMillis = 600))
         ) {
-            ContratanteCard(pedido, cardBg, accentPurple)
+            ContratanteCard(pedido, cardBg, accentOrange, textPrimary, textSecondary)
         }
 
         // Localização
@@ -267,7 +210,7 @@ private fun LazyColumnContent(
                 enter = fadeIn(animationSpec = tween(600, delayMillis = 800)) +
                         slideInVertically(initialOffsetY = { 100 }, animationSpec = tween(600, delayMillis = 800))
             ) {
-                LocalizacaoCard(loc, cardBg, accentCyan)
+                LocalizacaoCard(loc, cardBg, accentBlue, textPrimary, textSecondary)
             }
         }
 
@@ -277,7 +220,7 @@ private fun LazyColumnContent(
             enter = fadeIn(animationSpec = tween(600, delayMillis = 1000)) +
                     slideInVertically(initialOffsetY = { 100 }, animationSpec = tween(600, delayMillis = 1000))
         ) {
-            ResumoFinanceiroCard(pedido, cardBg, successGreen)
+            ResumoFinanceiroCard(pedido, cardBg, successGreen, textPrimary)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -289,7 +232,9 @@ private fun StatusSuccessCard(
     showSuccessAnimation: Boolean,
     successGreen: Color,
     cardBg: Color,
-    pedido: PedidoHistorico
+    pedido: PedidoHistorico,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     var scale by remember { mutableStateOf(0f) }
 
@@ -377,7 +322,7 @@ private fun StatusSuccessCard(
                 Text(
                     text = formatarDataDetalhes(pedido.data_conclusao ?: ""),
                     fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = textSecondary
                 )
             }
         }
@@ -389,7 +334,9 @@ private fun InfoPrincipaisCard(
     pedido: PedidoHistorico,
     cardBg: Color,
     primaryGreen: Color,
-    accentCyan: Color
+    accentBlue: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -401,7 +348,7 @@ private fun InfoPrincipaisCard(
             modifier = Modifier.padding(20.dp)
         ) {
             // Título da seção com linha gradiente
-            SectionHeader("Informações Principais", primaryGreen)
+            SectionHeader("Informações Principais", primaryGreen, textPrimary)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -411,28 +358,36 @@ private fun InfoPrincipaisCard(
                     icon = Icons.Default.Build,
                     label = "Categoria",
                     value = pedido.categoria.nome,
-                    iconColor = primaryGreen
+                    iconColor = primaryGreen,
+                    textPrimary = textPrimary,
+                    textSecondary = textSecondary
                 )
 
                 InfoRow(
                     icon = Icons.Default.Description,
                     label = "Descrição",
                     value = pedido.descricao,
-                    iconColor = accentCyan
+                    iconColor = accentBlue,
+                    textPrimary = textPrimary,
+                    textSecondary = textSecondary
                 )
 
                 InfoRow(
                     icon = Icons.Default.DateRange,
                     label = "Data Solicitação",
                     value = formatarDataDetalhes(pedido.data_solicitacao),
-                    iconColor = primaryGreen
+                    iconColor = primaryGreen,
+                    textPrimary = textPrimary,
+                    textSecondary = textSecondary
                 )
 
                 InfoRow(
                     icon = Icons.Default.CheckCircle,
                     label = "Data Conclusão",
                     value = formatarDataDetalhes(pedido.data_conclusao ?: "N/A"),
-                    iconColor = accentCyan
+                    iconColor = accentBlue,
+                    textPrimary = textPrimary,
+                    textSecondary = textSecondary
                 )
             }
         }
@@ -444,7 +399,9 @@ private fun TimelineParadasCard(
     paradas: List<Parada>,
     cardBg: Color,
     primaryGreen: Color,
-    accentCyan: Color
+    accentBlue: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -455,7 +412,7 @@ private fun TimelineParadasCard(
         Column(
             modifier = Modifier.padding(20.dp)
         ) {
-            SectionHeader("Timeline de Paradas", accentCyan)
+            SectionHeader("Timeline de Paradas", accentBlue, textPrimary)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -464,7 +421,9 @@ private fun TimelineParadasCard(
                     parada = parada,
                     isLast = index == paradas.size - 1,
                     primaryGreen = primaryGreen,
-                    accentCyan = accentCyan
+                    accentBlue = accentBlue,
+                    textPrimary = textPrimary,
+                    textSecondary = textSecondary
                 )
 
                 if (index < paradas.size - 1) {
@@ -480,7 +439,9 @@ private fun TimelineItem(
     parada: Parada,
     isLast: Boolean,
     primaryGreen: Color,
-    accentCyan: Color
+    accentBlue: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -492,12 +453,7 @@ private fun TimelineItem(
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(primaryGreen, accentCyan)
-                        ),
-                        shape = CircleShape
-                    )
+                    .background(primaryGreen, CircleShape)
                     .border(3.dp, primaryGreen.copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -514,49 +470,42 @@ private fun TimelineItem(
                     modifier = Modifier
                         .width(3.dp)
                         .height(40.dp)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    primaryGreen.copy(alpha = 0.5f),
-                                    accentCyan.copy(alpha = 0.3f)
-                                )
-                            )
-                        )
+                        .background(primaryGreen.copy(alpha = 0.3f))
                 )
             }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
 
-                // Conteúdo da parada
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                    Text(
-                        text = parada.endereco_completo,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
+        // Conteúdo da parada
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            Text(
+                text = parada.endereco_completo,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textPrimary
+            )
 
-                    if (parada.descricao.isNotEmpty()) {
-                        Text(
-                            text = parada.descricao,
-                            fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                    }
+            if (parada.descricao.isNotEmpty()) {
+                Text(
+                    text = parada.descricao,
+                    fontSize = 14.sp,
+                    color = textSecondary
+                )
+            }
 
-                    if (parada.tempo_estimado_chegada != null) {
-                        Text(
-                            text = "ETA: ${parada.tempo_estimado_chegada}",
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.5f)
-                        )
-                    }
-                }
+            if (parada.tempo_estimado_chegada != null) {
+                Text(
+                    text = "ETA: ${parada.tempo_estimado_chegada}",
+                    fontSize = 13.sp,
+                    color = textSecondary
+                )
+            }
+        }
     }
 }
 
@@ -564,7 +513,9 @@ private fun TimelineItem(
 private fun ContratanteCard(
     pedido: PedidoHistorico,
     cardBg: Color,
-    accentPurple: Color
+    accentOrange: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -575,7 +526,7 @@ private fun ContratanteCard(
         Column(
             modifier = Modifier.padding(20.dp)
         ) {
-            SectionHeader("Contratante", accentPurple)
+            SectionHeader("Contratante", accentOrange, textPrimary)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -586,12 +537,7 @@ private fun ContratanteCard(
                 Box(
                     modifier = Modifier
                         .size(60.dp)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(accentPurple, accentPurple.copy(alpha = 0.7f))
-                            ),
-                            shape = CircleShape
-                        ),
+                        .background(accentOrange, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -609,13 +555,13 @@ private fun ContratanteCard(
                         text = pedido.contratante.usuario.nome,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = textPrimary
                     )
 
                     Text(
                         text = pedido.contratante.usuario.email,
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.6f)
+                        color = textSecondary
                     )
                 }
             }
@@ -627,7 +573,9 @@ private fun ContratanteCard(
 private fun LocalizacaoCard(
     localizacao: com.exemple.facilita.service.LocalizacaoSimples,
     cardBg: Color,
-    accentCyan: Color
+    accentBlue: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -638,7 +586,7 @@ private fun LocalizacaoCard(
         Column(
             modifier = Modifier.padding(20.dp)
         ) {
-            SectionHeader("Localização", accentCyan)
+            SectionHeader("Localização", accentBlue, textPrimary)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -646,7 +594,7 @@ private fun LocalizacaoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = accentCyan.copy(alpha = 0.1f),
+                        color = accentBlue.copy(alpha = 0.1f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .padding(16.dp)
@@ -657,7 +605,7 @@ private fun LocalizacaoCard(
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = accentCyan,
+                        tint = accentBlue,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -665,7 +613,7 @@ private fun LocalizacaoCard(
                         text = localizacao.cidade,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = textPrimary
                     )
                 }
 
@@ -674,7 +622,7 @@ private fun LocalizacaoCard(
                 Text(
                     text = "ID da Localização: #${localizacao.id}",
                     fontSize = 13.sp,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = textSecondary
                 )
             }
         }
@@ -685,7 +633,8 @@ private fun LocalizacaoCard(
 private fun ResumoFinanceiroCard(
     pedido: PedidoHistorico,
     cardBg: Color,
-    successGreen: Color
+    successGreen: Color,
+    textPrimary: Color
 ) {
     val format = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
 
@@ -715,8 +664,9 @@ private fun ResumoFinanceiroCard(
                 Text(
                     text = "VALOR TOTAL",
                     fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.7f),
-                    letterSpacing = 2.sp
+                    color = textPrimary.copy(alpha = 0.6f),
+                    letterSpacing = 2.sp,
+                    fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -733,10 +683,10 @@ private fun ResumoFinanceiroCard(
                 // Badge de status
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = successGreen.copy(alpha = 0.2f),
+                    color = successGreen.copy(alpha = 0.15f),
                     modifier = Modifier.border(
                         1.dp,
-                        successGreen.copy(alpha = 0.5f),
+                        successGreen,
                         RoundedCornerShape(20.dp)
                     )
                 ) {
@@ -766,7 +716,7 @@ private fun ResumoFinanceiroCard(
 }
 
 @Composable
-private fun SectionHeader(title: String, color: Color) {
+private fun SectionHeader(title: String, color: Color, textPrimary: Color) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
@@ -775,12 +725,7 @@ private fun SectionHeader(title: String, color: Color) {
             modifier = Modifier
                 .width(4.dp)
                 .height(24.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(color, color.copy(alpha = 0.5f))
-                    ),
-                    shape = RoundedCornerShape(2.dp)
-                )
+                .background(color, shape = RoundedCornerShape(2.dp))
         )
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -789,7 +734,7 @@ private fun SectionHeader(title: String, color: Color) {
             text = title,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = textPrimary
         )
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -797,15 +742,8 @@ private fun SectionHeader(title: String, color: Color) {
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(2.dp)
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            color.copy(alpha = 0.3f),
-                            Color.Transparent
-                        )
-                    )
-                )
+                .height(1.dp)
+                .background(color.copy(alpha = 0.2f))
         )
     }
 }
@@ -815,7 +753,9 @@ private fun InfoRow(
     icon: ImageVector,
     label: String,
     value: String,
-    iconColor: Color
+    iconColor: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -825,7 +765,7 @@ private fun InfoRow(
             modifier = Modifier
                 .size(44.dp)
                 .background(
-                    color = iconColor.copy(alpha = 0.15f),
+                    color = iconColor.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(12.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -844,7 +784,7 @@ private fun InfoRow(
             Text(
                 text = label,
                 fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.6f)
+                color = textSecondary
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -853,7 +793,7 @@ private fun InfoRow(
                 text = value,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White
+                color = textPrimary
             )
         }
     }

@@ -1,6 +1,6 @@
 package com.exemple.facilita.model
 
-data class Modalidade(
+data class ModalidadeVeiculo(
     val tipo: String, // MOTO, CARRO, BICICLETA
     val modelo_veiculo: String,
     val ano_veiculo: Int,
@@ -11,6 +11,6 @@ data class Modalidade(
 )
 
 data class ModalidadeRequest(
-    val modalidades: List<Modalidade>
+    val modalidades: List<ModalidadeVeiculo>
 )
 
