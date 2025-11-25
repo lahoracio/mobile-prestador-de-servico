@@ -30,11 +30,18 @@ class ServicoViewModel : ViewModel() {
     fun carregarServico(servicoId: Int, context: Context? = null) {
         viewModelScope.launch {
             _servicoState.value = _servicoState.value.copy(isLoading = true)
-            Log.d(TAG, "🔍 Carregando serviço ID: $servicoId")
+            Log.d(TAG, "")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🔍 CARREGANDO SERVIÇO")
+            Log.d(TAG, "   ServicoId: $servicoId")
+            Log.d(TAG, "   Context fornecido: ${context != null}")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
             try {
                 // Primeiro, tentar buscar o serviço aceito no cache
                 val servicoCache = _servicosAceitos.value[servicoId]
+                Log.d(TAG, "📦 Cache contém ${_servicosAceitos.value.size} serviços")
+                Log.d(TAG, "📦 IDs no cache: ${_servicosAceitos.value.keys}")
 
                 if (servicoCache != null) {
                     Log.d(TAG, "✅ Serviço encontrado no cache")
@@ -47,14 +54,24 @@ class ServicoViewModel : ViewModel() {
                     // Se não estiver no cache e context foi fornecido, buscar da API
                     Log.d(TAG, "📡 Serviço não está no cache, buscando da API...")
                     val token = TokenManager.obterTokenComBearer(context)
+                    Log.d(TAG, "🔑 Token disponível: ${token != null}")
 
                     if (token != null) {
                         val service = RetrofitFactory.getServicoService()
+                        Log.d(TAG, "🌐 Chamando API: GET /v1/facilita/servico/$servicoId")
                         val response = service.getServicoPorId(token, servicoId)
+
+                        Log.d(TAG, "📡 Resposta da API:")
+                        Log.d(TAG, "   Status Code: ${response.code()}")
+                        Log.d(TAG, "   Is Successful: ${response.isSuccessful}")
+                        Log.d(TAG, "   Body is null: ${response.body() == null}")
 
                         if (response.isSuccessful && response.body() != null) {
                             val servico = response.body()!!.data
                             Log.d(TAG, "✅ Serviço carregado da API com sucesso")
+                            Log.d(TAG, "   ID: ${servico.id}")
+                            Log.d(TAG, "   Descrição: ${servico.descricao}")
+                            Log.d(TAG, "   Status: ${servico.status}")
 
                             // Salvar no cache para próximas consultas
                             salvarServicoAceito(servico)
@@ -64,9 +81,12 @@ class ServicoViewModel : ViewModel() {
                                 servico = servico,
                                 error = null
                             )
+                            Log.d(TAG, "✅ Estado atualizado com sucesso")
                         } else {
+                            val errorBody = response.errorBody()?.string()
                             val errorMsg = "Erro ao carregar serviço: ${response.code()}"
                             Log.e(TAG, "❌ $errorMsg")
+                            Log.e(TAG, "❌ Error body: $errorBody")
                             _servicoState.value = ServicoState(
                                 isLoading = false,
                                 servico = null,

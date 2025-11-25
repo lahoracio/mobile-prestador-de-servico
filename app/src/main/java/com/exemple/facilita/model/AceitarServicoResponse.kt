@@ -23,7 +23,8 @@ data class ServicoDetalhe(
     val contratante: ContratanteDetalhe,
     val prestador: PrestadorDetalhe?,
     val categoria: CategoriaDetalhe,
-    val localizacao: LocalizacaoDetalhe?
+    val localizacao: LocalizacaoDetalhe?,
+    val paradas: List<ParadaDetalhe>? = null
 )
 
 data class ContratanteDetalhe(
@@ -72,5 +73,16 @@ data class LocalizacaoDetalhe(
     val complemento: String?,
     val latitude: Double,
     val longitude: Double
+)
+
+data class ParadaDetalhe(
+    val id: Int,
+    val ordem: Int,
+    val tipo: String, // "ORIGEM", "PARADA", "DESTINO"
+    val lat: Double,
+    val lng: Double,
+    val descricao: String,
+    val endereco_completo: String,
+    val tempo_estimado_chegada: String?
 )
 
