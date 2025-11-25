@@ -131,5 +131,110 @@ class ServicoViewModel : ViewModel() {
     fun limparEstado() {
         _servicoState.value = ServicoState()
     }
+
+    // Estado para finalização de serviço
+    private val _finalizarServicoState = MutableStateFlow<FinalizarServicoState>(FinalizarServicoState.Idle)
+    val finalizarServicoState: StateFlow<FinalizarServicoState> = _finalizarServicoState.asStateFlow()
+
+    fun finalizarServico(servicoId: Int, context: Context, valorServico: Double? = null) {
+        viewModelScope.launch {
+            _finalizarServicoState.value = FinalizarServicoState.Loading
+            Log.d(TAG, "")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🏁 FINALIZANDO SERVIÇO")
+            Log.d(TAG, "   ServicoId: $servicoId")
+            Log.d(TAG, "   Valor: R$ $valorServico")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            try {
+                val token = TokenManager.obterTokenComBearer(context)
+                if (token.isNullOrEmpty()) {
+                    Log.e(TAG, "❌ Token não encontrado")
+                    _finalizarServicoState.value = FinalizarServicoState.Error("Token não encontrado. Faça login novamente.")
+                    return@launch
+                }
+
+                val usuarioId = TokenManager.obterUsuarioId(context)
+                if (usuarioId == null) {
+                    Log.e(TAG, "❌ ID do usuário não encontrado")
+                    _finalizarServicoState.value = FinalizarServicoState.Error("ID do usuário não encontrado.")
+                    return@launch
+                }
+
+                Log.d(TAG, "🔑 Token obtido: ${token.take(20)}...")
+                Log.d(TAG, "👤 Usuario ID: $usuarioId")
+                Log.d(TAG, "📡 Chamando API para finalizar serviço...")
+
+                val response = RetrofitFactory.getServicoService().finalizarServico(servicoId, token)
+
+                if (response.isSuccessful) {
+                    Log.d(TAG, "✅ Serviço finalizado com sucesso")
+                    Log.d(TAG, "   Response code: ${response.code()}")
+
+                    // Adicionar valor à carteira do prestador se valor foi informado
+                    if (valorServico != null && valorServico > 0) {
+                        Log.d(TAG, "💰 Adicionando R$ $valorServico à carteira do prestador...")
+
+                        try {
+                            val solicitacaoDeposito = com.exemple.facilita.model.SolicitacaoDeposito(
+                                valor = valorServico,
+                                metodoPagamento = "SERVICO",
+                                comprovante = "Serviço #$servicoId finalizado"
+                            )
+
+                            val carteiraResponse = RetrofitFactory.getCarteiraService()
+                                .solicitarDeposito(solicitacaoDeposito, token)
+
+                            if (carteiraResponse.isSuccessful) {
+                                Log.d(TAG, "✅ Valor R$ $valorServico adicionado à carteira com sucesso!")
+                                val transacao = carteiraResponse.body()
+                                if (transacao != null) {
+                                    Log.d(TAG, "   Transação ID: ${transacao.id}")
+                                    Log.d(TAG, "   Status: ${transacao.status}")
+                                    Log.d(TAG, "   Tipo: ${transacao.tipo}")
+                                }
+                            } else {
+                                val errorBody = carteiraResponse.errorBody()?.string()
+                                Log.e(TAG, "⚠️ Erro ao adicionar valor à carteira: ${carteiraResponse.code()}")
+                                Log.e(TAG, "   Error body: $errorBody")
+                                // Não falha a finalização do serviço por isso
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "⚠️ Exceção ao adicionar valor à carteira: ${e.message}", e)
+                            // Não falha a finalização do serviço por isso
+                        }
+                    } else {
+                        Log.d(TAG, "ℹ️ Valor do serviço não informado, pulando adição à carteira")
+                    }
+
+                    // Remover do cache de serviços aceitos
+                    val novosServicos = _servicosAceitos.value.toMutableMap()
+                    novosServicos.remove(servicoId)
+                    _servicosAceitos.value = novosServicos
+
+                    _finalizarServicoState.value = FinalizarServicoState.Success
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "❌ Erro ao finalizar serviço: ${response.code()}")
+                    Log.e(TAG, "   Error body: $errorBody")
+                    _finalizarServicoState.value = FinalizarServicoState.Error("Erro ao finalizar serviço: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Exceção ao finalizar serviço: ${e.message}", e)
+                _finalizarServicoState.value = FinalizarServicoState.Error(e.message ?: "Erro ao finalizar serviço")
+            }
+        }
+    }
+
+    fun resetFinalizarState() {
+        _finalizarServicoState.value = FinalizarServicoState.Idle
+    }
+}
+
+sealed class FinalizarServicoState {
+    object Idle : FinalizarServicoState()
+    object Loading : FinalizarServicoState()
+    object Success : FinalizarServicoState()
+    data class Error(val message: String) : FinalizarServicoState()
 }
 

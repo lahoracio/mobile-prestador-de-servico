@@ -361,6 +361,56 @@ fun AppNavHost(navController: NavHostController) {
                 }
             }
 
+            // Rota para tela de acompanhamento de localização
+            composable("acompanhamento_localizacao/{servicoId}/{contratanteNome}") { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                val contratanteNome = URLDecoder.decode(backStackEntry.arguments?.getString("contratanteNome") ?: "", StandardCharsets.UTF_8.toString())
+                val context = LocalContext.current
+
+                // Observar o estado do serviço
+                val servicoState by servicoViewModel.servicoState.collectAsState()
+
+                LaunchedEffect(servicoId) {
+                    servicoViewModel.carregarServico(servicoId, context)
+                }
+
+                when {
+                    servicoState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFF019D31))
+                        }
+                    }
+                    servicoState.servico != null -> {
+                        TelaAcompanhamentoLocalizacao(
+                            navController = navController,
+                            servicoId = servicoId,
+                            contratanteNome = contratanteNome,
+                            servicoDetalhe = servicoState.servico
+                        )
+                    }
+                    servicoState.error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = servicoState.error ?: "Erro desconhecido",
+                                    color = Color.Red
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { navController.popBackStack() }) {
+                                    Text("Voltar")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Rota para chat ao vivo
             composable("chat_ao_vivo/{servicoId}/{contratanteId}/{contratanteNome}/{prestadorId}/{prestadorNome}") { backStackEntry ->
                 val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0

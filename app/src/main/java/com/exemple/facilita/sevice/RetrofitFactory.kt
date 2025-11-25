@@ -46,8 +46,14 @@ object RetrofitFactory {
     val userService: UserService by lazy {
         retrofit.create(UserService::class.java)
     }
-    //fun getUserService(): UserService = retrofitUser.create(UserService::class.java)
-    fun getServicoService(): ServicoService = retrofit.create(ServicoService::class.java)
+
+    private val _servicoService: ServicoService by lazy {
+        retrofit.create(ServicoService::class.java)
+    }
+
+    // Função pública para acessar ServicoService
+    fun getServicoService(): ServicoService = _servicoService
+
 
     fun getCNHService(): CNHService = retrofit.create(CNHService::class.java)
 

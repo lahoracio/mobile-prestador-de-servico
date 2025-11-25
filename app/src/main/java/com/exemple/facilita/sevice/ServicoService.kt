@@ -43,6 +43,13 @@ interface ServicoService {
         @Query("pagina") pagina: Int = 1,
         @Query("por_pagina") porPagina: Int = 10
     ): Call<HistoricoPedidosResponse>
+
+    @PATCH("v1/facilita/servico/{id}/finalizar")
+    suspend fun finalizarServico(
+        @Path("id") idServico: Int,
+        @Header("Authorization") token: String,
+        @Body body: Map<String, String> = emptyMap()
+    ): Response<FinalizarServicoResponse>
 }
 
 // Model genérico do retorno da API para lista de serviços
@@ -68,6 +75,13 @@ data class ServicosResponse(
 data class ServicoDetalheResponse(
     val status_code: Int,
     val data: com.exemple.facilita.model.ServicoDetalhe
+)
+
+// Model para resposta de finalizar serviço
+data class FinalizarServicoResponse(
+    val status_code: Int,
+    val message: String,
+    val data: Any? = null
 )
 
 // Model para resposta de histórico de pedidos

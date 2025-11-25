@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Phone
@@ -48,14 +49,59 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.exemple.facilita.model.ServicoDetalhe
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.exemple.facilita.viewmodel.ServicoViewModel
+import com.exemple.facilita.viewmodel.FinalizarServicoState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.exemple.facilita.components.SwipeToFinishButton
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaDetalhesServicoAceito(
     navController: NavController,
-    servicoDetalhe: ServicoDetalhe
+    servicoDetalhe: ServicoDetalhe,
+    servicoViewModel: ServicoViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val finalizarState by servicoViewModel.finalizarServicoState.collectAsState()
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    // Observar estado de finalização
+    LaunchedEffect(finalizarState) {
+        when (finalizarState) {
+            is FinalizarServicoState.Success -> {
+                showSuccessDialog = true
+            }
+            is FinalizarServicoState.Error -> {
+                errorMessage = (finalizarState as FinalizarServicoState.Error).message
+                showErrorDialog = true
+            }
+            else -> {}
+        }
+    }
 
     // Cores inspiradas no iFood com identidade do projeto
     val primaryGreen = Color(0xFF00B14F)
@@ -91,6 +137,52 @@ fun TelaDetalhesServicoAceito(
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
+        },
+        bottomBar = {
+            // Botão de finalizar fixo na parte inferior
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Finalizar serviço",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = textPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Deslize o botão abaixo para confirmar a finalização",
+                        fontSize = 13.sp,
+                        color = textSecondary,
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    SwipeToFinishButton(
+                        text = "Deslize para finalizar",
+                        isEnabled = finalizarState !is FinalizarServicoState.Loading,
+                        isLoading = finalizarState is FinalizarServicoState.Loading,
+                        backgroundColor = primaryGreen,
+                        onSwipeComplete = {
+                            servicoViewModel.finalizarServico(
+                                servicoId = servicoDetalhe.id,
+                                context = context,
+                                valorServico = servicoDetalhe.valor.toDoubleOrNull()
+                            )
+                        }
+                    )
+                }
+            }
         },
         containerColor = bgLight
     ) { padding ->
@@ -476,7 +568,308 @@ fun TelaDetalhesServicoAceito(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Espaço extra no final para não ficar escondido atrás do bottomBar
+            Spacer(modifier = Modifier.height(120.dp))
+        }
+    }
+
+    // Diálogo de sucesso com animação
+    if (showSuccessDialog) {
+        SuccessAnimationDialog(
+            primaryGreen = primaryGreen,
+            onDismiss = {
+                showSuccessDialog = false
+                servicoViewModel.resetFinalizarState()
+                navController.navigate("tela_inicio_prestador") {
+                    popUpTo("tela_inicio_prestador") { inclusive = true }
+                }
+            }
+        )
+    }
+
+    // Diálogo de erro
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showErrorDialog = false
+                servicoViewModel.resetFinalizarState()
+            },
+            title = {
+                Text(
+                    text = "❌ Erro",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+            },
+            text = {
+                Text(errorMessage)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showErrorDialog = false
+                        servicoViewModel.resetFinalizarState()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun SuccessAnimationDialog(
+    primaryGreen: Color,
+    onDismiss: () -> Unit
+) {
+    var scale by remember { mutableStateOf(0f) }
+    var alpha by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        // Anima entrada
+        androidx.compose.animation.core.animate(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        ) { value, _ ->
+            scale = value
+            alpha = value
+        }
+
+        // Aguarda e fecha
+        kotlinx.coroutines.delay(2500)
+        onDismiss()
+    }
+
+    // Animação de pulse para o círculo
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_scale"
+    )
+
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.85f),
+                        Color.Black.copy(alpha = 0.95f)
+                    )
+                )
+            )
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Partículas de fundo
+        repeat(30) { index ->
+            val randomX = remember { Random.nextFloat() }
+            val randomY = remember { Random.nextFloat() }
+            val randomSize = remember { Random.nextInt(2, 8) }
+            val delay = remember { Random.nextInt(0, 2000) }
+
+            var particleAlpha by remember { mutableStateOf(0f) }
+
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(delay.toLong())
+                androidx.compose.animation.core.animate(
+                    initialValue = 0f,
+                    targetValue = 1f,
+                    animationSpec = tween(1500)
+                ) { value, _ ->
+                    particleAlpha = value
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = (randomX * 350).dp - 175.dp,
+                        y = (randomY * 600).dp - 300.dp
+                    )
+                    .size(randomSize.dp)
+                    .alpha(particleAlpha * 0.6f)
+                    .background(
+                        primaryGreen.copy(alpha = 0.8f),
+                        CircleShape
+                    )
+            )
+        }
+
+        // Card principal
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .alpha(alpha),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White,
+                                Color(0xFFF8F9FA)
+                            )
+                        )
+                    )
+                    .padding(40.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Círculos concêntricos com gradiente
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Círculo externo com pulse
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .scale(pulseScale)
+                            .background(
+                                androidx.compose.ui.graphics.Brush.radialGradient(
+                                    colors = listOf(
+                                        primaryGreen.copy(alpha = 0.2f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                CircleShape
+                            )
+                    )
+
+                    // Círculo do meio rotativo
+                    Box(
+                        modifier = Modifier
+                            .size(110.dp)
+                            .rotate(rotation)
+                            .background(
+                                androidx.compose.ui.graphics.Brush.sweepGradient(
+                                    colors = listOf(
+                                        primaryGreen.copy(alpha = 0.3f),
+                                        primaryGreen.copy(alpha = 0.1f),
+                                        primaryGreen.copy(alpha = 0.3f)
+                                    )
+                                ),
+                                CircleShape
+                            )
+                    )
+
+                    // Círculo principal com gradiente
+                    Box(
+                        modifier = Modifier
+                            .size(90.dp)
+                            .background(
+                                androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(
+                                        primaryGreen,
+                                        Color(0xFF00D563)
+                                    )
+                                ),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(50.dp)
+                                .scale(scale)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Título moderno
+                Text(
+                    text = "Serviço Finalizado",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1A1A1A),
+                    letterSpacing = 0.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Linha decorativa com gradiente
+                Box(
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(3.dp)
+                        .background(
+                            androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    primaryGreen,
+                                    Color.Transparent
+                                )
+                            ),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "O serviço foi concluído com sucesso",
+                    fontSize = 16.sp,
+                    color = Color(0xFF666666),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 24.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Redirecionando...",
+                    fontSize = 14.sp,
+                    color = primaryGreen,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // Anéis orbitais decorativos
+        repeat(3) { index ->
+            Box(
+                modifier = Modifier
+                    .size((200 + index * 50).dp)
+                    .alpha(0.1f * (3 - index))
+                    .rotate(rotation * (1 + index * 0.3f))
+                    .border(
+                        width = 2.dp,
+                        color = primaryGreen.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    )
+            )
         }
     }
 }
+
