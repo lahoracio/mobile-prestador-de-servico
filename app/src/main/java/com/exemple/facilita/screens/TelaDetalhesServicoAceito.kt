@@ -193,6 +193,7 @@ fun TelaDetalhesServicoAceito(
                         }
 
                         // Botão Chat
+                        // Botão Chat
                         Button(
                             onClick = {
                                 val servicoId = servicoDetalhe.id
@@ -225,7 +226,40 @@ fun TelaDetalhesServicoAceito(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Chat ao vivo",
+                                "Chat",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Botão Localização
+                        Button(
+                            onClick = {
+                                val servicoId = servicoDetalhe.id
+                                val contratanteNome = java.net.URLEncoder.encode(servicoDetalhe.contratante.usuario.nome, "UTF-8")
+
+                                android.util.Log.d("TelaDetalhes", "📍 Navegando para localização: servicoId=$servicoId")
+
+                                navController.navigate(
+                                    "acompanhamento_localizacao/$servicoId/$contratanteNome"
+                                )
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2196F3)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Navigation,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Mapa",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium
                             )

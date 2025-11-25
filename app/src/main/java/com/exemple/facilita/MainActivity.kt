@@ -360,6 +360,26 @@ fun AppNavHost(navController: NavHostController) {
             )
         }
 
+        composable("acompanhamento_localizacao/{servicoId}/{contratanteNome}") { backStackEntry ->
+            val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+            val contratanteNome = URLDecoder.decode(backStackEntry.arguments?.getString("contratanteNome") ?: "", StandardCharsets.UTF_8.toString())
+            val context = LocalContext.current
+
+            // Observar o estado do serviço para obter as paradas
+            val servicoState by servicoViewModel.servicoState.collectAsState()
+
+            LaunchedEffect(servicoId) {
+                servicoViewModel.carregarServico(servicoId, context)
+            }
+
+            TelaAcompanhamentoLocalizacao(
+                navController = navController,
+                servicoId = servicoId,
+                contratanteNome = contratanteNome,
+                servicoDetalhe = servicoState.servico
+            )
+        }
+
     }
 
     // Notificação de novo serviço (aparece sobre qualquer tela)

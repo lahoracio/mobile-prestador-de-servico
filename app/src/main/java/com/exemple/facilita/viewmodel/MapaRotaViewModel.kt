@@ -55,6 +55,77 @@ class MapaRotaViewModel : ViewModel() {
     }
 
     /**
+     * Busca rota com paradas intermediárias
+     */
+    fun fetchRouteWithWaypoints(origin: LatLng, waypoints: List<LatLng>, destination: LatLng) {
+        viewModelScope.launch {
+            try {
+                _isLoadingRoute.value = true
+                _error.value = null
+
+                Log.d(TAG, "🗺️ Buscando rota com ${waypoints.size} paradas...")
+
+                val result = directionsService?.getDirectionsWithWaypoints(origin, waypoints, destination)
+
+                if (result != null && result.routes.isNotEmpty()) {
+                    val route = result.routes[0]
+
+                    // Combinar todas as legs (segmentos) da rota
+                    var totalDistance = 0
+                    var totalDuration = 0
+                    val allSteps = mutableListOf<RouteStep>()
+                    val allPoints = mutableListOf<LatLng>()
+
+                    route.legs.forEach { leg ->
+                        totalDistance += leg.distance.inMeters.toInt()
+                        totalDuration += leg.duration.inSeconds.toInt()
+
+                        leg.steps.forEach { step ->
+                            allSteps.add(RouteStep(
+                                instruction = step.htmlInstructions
+                                    .replace("<b>", "")
+                                    .replace("</b>", "")
+                                    .replace("<div[^>]*>", "")
+                                    .replace("</div>", ""),
+                                distance = step.distance.humanReadable,
+                                duration = step.duration.humanReadable,
+                                startLocation = LatLng(step.startLocation.lat, step.startLocation.lng),
+                                endLocation = LatLng(step.endLocation.lat, step.endLocation.lng)
+                            ))
+                        }
+                    }
+
+                    // Decodificar polyline
+                    val polyline = route.overviewPolyline.encodedPath
+                    val points = directionsService?.decodePolyline(polyline) ?: emptyList()
+
+                    val routeInfo = RouteInfo(
+                        polylinePoints = points,
+                        distanceText = formatDistance(totalDistance),
+                        durationText = formatDuration(totalDuration),
+                        distanceMeters = totalDistance,
+                        durationSeconds = totalDuration,
+                        steps = allSteps
+                    )
+
+                    _routeInfo.value = routeInfo
+                    Log.d(TAG, "✅ Rota com paradas carregada: ${routeInfo.distanceText}, ${routeInfo.durationText}")
+
+                } else {
+                    _error.value = "Não foi possível encontrar uma rota"
+                    Log.e(TAG, "❌ Nenhuma rota encontrada")
+                }
+
+            } catch (e: Exception) {
+                _error.value = "Erro ao buscar rota: ${e.message}"
+                Log.e(TAG, "❌ Erro ao buscar rota com paradas", e)
+            } finally {
+                _isLoadingRoute.value = false
+            }
+        }
+    }
+
+    /**
      * Busca a rota entre origem e destino
      */
     fun fetchRoute(origin: LatLng, destination: LatLng) {
@@ -147,6 +218,30 @@ class MapaRotaViewModel : ViewModel() {
      */
     fun clearRoute() {
         _routeInfo.value = null
+    }
+
+    private fun formatDistance(meters: Int): String {
+        return if (meters >= 1000) {
+            val km = meters / 1000.0
+            String.format(java.util.Locale.getDefault(), "%.1f km", km)
+        } else {
+            "$meters m"
+        }
+    }
+
+    private fun formatDuration(seconds: Int): String {
+        val minutes = seconds / 60
+        return if (minutes >= 60) {
+            val hours = minutes / 60
+            val remainingMinutes = minutes % 60
+            if (remainingMinutes > 0) {
+                "${hours}h ${remainingMinutes}min"
+            } else {
+                "${hours}h"
+            }
+        } else {
+            "${minutes} min"
+        }
     }
 }
 

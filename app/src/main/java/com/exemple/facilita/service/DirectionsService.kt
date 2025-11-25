@@ -49,6 +49,44 @@ class DirectionsService(private val apiKey: String) {
     }
 
     /**
+     * Busca rota com paradas intermediárias (waypoints)
+     */
+    suspend fun getDirectionsWithWaypoints(
+        origin: LatLng,
+        waypoints: List<LatLng>,
+        destination: LatLng
+    ): DirectionsResult? = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "🗺️ Buscando rota com paradas")
+            Log.d(TAG, "   Origem: ${origin.latitude}, ${origin.longitude}")
+            waypoints.forEachIndexed { index, waypoint ->
+                Log.d(TAG, "   Parada ${index + 1}: ${waypoint.latitude}, ${waypoint.longitude}")
+            }
+            Log.d(TAG, "   Destino: ${destination.latitude}, ${destination.longitude}")
+
+            val waypointsArray = waypoints.map {
+                com.google.maps.model.LatLng(it.latitude, it.longitude)
+            }.toTypedArray()
+
+            val result = DirectionsApi.newRequest(geoApiContext)
+                .mode(TravelMode.DRIVING)
+                .origin(com.google.maps.model.LatLng(origin.latitude, origin.longitude))
+                .destination(com.google.maps.model.LatLng(destination.latitude, destination.longitude))
+                .waypoints(*waypointsArray)
+                .optimizeWaypoints(false) // Manter ordem das paradas
+                .language("pt-BR")
+                .await()
+
+            Log.d(TAG, "✅ Rota com ${waypoints.size} paradas encontrada")
+            result
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Erro ao buscar rota com paradas", e)
+            null
+        }
+    }
+
+    /**
      * Decodifica polyline para lista de LatLng
      */
     fun decodePolyline(encoded: String): List<LatLng> {
