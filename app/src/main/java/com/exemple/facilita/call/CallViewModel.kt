@@ -1,61 +1,85 @@
 package com.exemple.facilita.call
 
-import androidx.lifecycle.ViewModel
-import com.exemple.facilita.socket.SocketManager
-import org.json.JSONObject
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.MutableLiveData
+import com.exemple.facilita.data.service.WebSocketService
+import com.exemple.facilita.webrtc.WebRtcClient
+import org.webrtc.EglBase
+import org.webrtc.IceCandidate
+import org.webrtc.SurfaceViewRenderer
+import org.webrtc.SessionDescription
 
-class CallViewModel : ViewModel() {
+class CallViewModel(
+    app: Application,
+    private val socket: WebSocketService
+) : AndroidViewModel(app) {
 
-    var callState: CallState = CallState.Idle
-        private set
+    val callState = MutableLiveData("idle")
+    val servicoId = MutableLiveData<Int>()
+    val incomingCallerName = MutableLiveData("")
 
-    private val socket = SocketManager()
+    private val egl = EglBase.create()
+    private lateinit var rtc: WebRtcClient
 
-    fun connectSocket() {
-        socket.connect("https://seu-servidor.com")
-        listenSocketEvents()
+    private lateinit var localView: SurfaceViewRenderer
+    private lateinit var remoteView: SurfaceViewRenderer
+
+    fun initWebRTC(local: SurfaceViewRenderer, remote: SurfaceViewRenderer) {
+        localView = local
+        remoteView = remote
+
+        rtc = WebRtcClient(
+            getApplication(),
+            egl,
+            onLocalSdp = { sdp ->
+                if (callState.value == "outgoing") {
+                    socket.sendOffer(servicoId.value!!, sdp.description)
+                } else {
+                    socket.sendAnswer(servicoId.value!!, sdp.description)
+                }
+            },
+            onIceCandidate = { cand ->
+                socket.sendIceCandidate(
+                    servicoId.value!!,
+                    cand.sdp,
+                    cand.sdpMid,
+                    cand.sdpMLineIndex
+                )
+            }
+        )
+
+        rtc.init(localView)
+        rtc.createPeer(remoteView)
     }
 
-    private fun listenSocketEvents() {
-
-        socket.on("call:incoming") { data ->
-            callState = CallState.Incoming
-        }
-
-        socket.on("call:initiated") { data ->
-            callState = CallState.Outgoing
-        }
-
-        socket.on("call:accepted") { data ->
-            callState = CallState.Active
-        }
-
-        socket.on("call:ended") { data ->
-            callState = CallState.Ended
-        }
+    fun startCall(servico: Int, callerId: Int, callerName: String, target: Int) {
+        servicoId.value = servico
+        callState.value = "outgoing"
+        socket.initiateCall(servico, callerId, callerName, target)
     }
 
-    fun initiateCall(servicoId: Int, callerId: Int, targetUserId: Int) {
-        val json = JSONObject().apply {
-            put("servicoId", servicoId)
-            put("callerId", callerId)
-            put("targetUserId", targetUserId)
-            put("callType", "video")
-        }
-        socket.emit("call:initiate", json)
+    fun acceptCall(servico: Int, userId: Int) {
+        servicoId.value = servico
+        callState.value = "in-call"
+        socket.acceptCall(servico, userId)
+        rtc.createAnswer()
     }
 
-    fun acceptCall(servicoId: Int) {
-        val json = JSONObject().apply {
-            put("servicoId", servicoId)
-        }
-        socket.emit("call:accept", json)
+    fun onRemoteOffer(sdp: String) {
+        callState.value = "incoming"
+        rtc.setRemoteDescription("offer", sdp)
     }
 
-    fun endCall(servicoId: Int) {
-        val json = JSONObject().apply {
-            put("servicoId", servicoId)
-        }
-        socket.emit("call:end", json)
+    fun onRemoteAnswer(sdp: String) {
+        rtc.setRemoteDescription("answer", sdp)
+    }
+
+    fun onRemoteIce(candidate: IceCandidate) {
+        rtc.addIceCandidate(candidate)
+    }
+
+    fun generateOffer() {
+        rtc.createOffer()
     }
 }
