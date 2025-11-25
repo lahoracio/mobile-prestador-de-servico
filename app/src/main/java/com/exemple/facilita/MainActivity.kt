@@ -57,7 +57,7 @@ fun AppNavHost(navController: NavHostController) {
     val callViewModel: CallViewModel = viewModel()
     val webSocketService = remember { WebSocketService() }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val token = com.exemple.facilita.utils.TokenManager.obterTokenComBearer(context) ?: ""
 
     // Estados de notificação
@@ -82,7 +82,7 @@ fun AppNavHost(navController: NavHostController) {
         webSocketService.connect()
     }
 
-    Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = "splash_screen"
@@ -131,7 +131,7 @@ fun AppNavHost(navController: NavHostController) {
 
             //  Rotas do prestador
             composable("tela_inicio_prestador") {
-                TelaInicioPrestador(navController, servicoViewModel)
+                TelaInicioPrestador(navController)
             }
 
             composable("tela_perfil_prestador") {
@@ -383,7 +383,7 @@ fun AppNavHost(navController: NavHostController) {
 
         // Notificação de novo serviço (aparece sobre qualquer tela)
         if (mostrarNotificacao && novoServico != null) {
-            com.exemple.facilita.screens.NotificacaoNovoServico(
+            NotificacaoNovoServico(
                 servico = novoServico!!,
                 tempoRestante = tempoRestante,
                 onAceitar = {

@@ -41,7 +41,7 @@ data class Solicitacao(
 )
 
 @Composable
-fun TelaInicioPrestador() {
+fun TelaInicioPrestador(navController: androidx.navigation.NavController? = null) {
     val context = LocalContext.current
     var listaSolicitacoes by remember { mutableStateOf<List<Solicitacao>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }

@@ -14,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -28,13 +27,11 @@ import com.exemple.facilita.service.AceitarServicoApiResponse
 import com.exemple.facilita.service.RetrofitFactory
 import com.exemple.facilita.utils.TokenManager
 import com.exemple.facilita.viewmodel.ServicoViewModel
-import kotlinx.coroutines.delay
+import com.exemple.facilita.extensions.toServicoDetalhe
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-// Nota: A função Servico.toServicoDetalhe() está definida em TelaInicioPrestador.kt
-// e é acessível aqui pois ambas estão no mesmo pacote (com.exemple.facilita.screens)
 
 @Composable
 fun NotificacaoNovoServico(
