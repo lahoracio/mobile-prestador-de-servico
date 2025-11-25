@@ -74,9 +74,20 @@ fun TelaCarteira(navController: NavController) {
         com.exemple.facilita.utils.TokenManager.obterUsuarioId(context)?.toString() ?: "0"
     }
 
-    LaunchedEffect(usuarioId) {
+    // Recarregar dados sempre que a tela é exibida
+    LaunchedEffect(Unit) {
         viewModel.carregarCarteira(usuarioId)
         viewModel.carregarTransacoes(usuarioId)
+        viewModel.carregarContasBancarias(usuarioId)
+    }
+
+    // Auto-atualização periódica a cada 10 segundos quando a tela está ativa
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(10000) // 10 segundos
+            viewModel.carregarCarteira(usuarioId)
+            viewModel.carregarTransacoes(usuarioId)
+        }
     }
 
     var visible by remember { mutableStateOf(false) }

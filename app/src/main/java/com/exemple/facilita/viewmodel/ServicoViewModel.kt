@@ -173,38 +173,50 @@ class ServicoViewModel : ViewModel() {
 
                     // Adicionar valor à carteira do prestador se valor foi informado
                     if (valorServico != null && valorServico > 0) {
-                        Log.d(TAG, "💰 Adicionando R$ $valorServico à carteira do prestador...")
+                        Log.d(TAG, "💰 Processando pagamento de R$ $valorServico...")
 
                         try {
-                            val solicitacaoDeposito = com.exemple.facilita.model.SolicitacaoDeposito(
-                                valor = valorServico,
-                                metodoPagamento = "SERVICO",
-                                comprovante = "Serviço #$servicoId finalizado"
+                            // Criar instância do CarteiraViewModel para processar o pagamento
+                            val carteiraViewModel = com.exemple.facilita.viewmodel.CarteiraViewModel(
+                                context.applicationContext as android.app.Application
                             )
 
-                            val carteiraResponse = RetrofitFactory.getCarteiraService()
-                                .solicitarDeposito(solicitacaoDeposito, token)
+                            // Adicionar pagamento diretamente à carteira local
+                            carteiraViewModel.adicionarPagamentoServico(
+                                usuarioId = usuarioId.toString(),
+                                valorServico = valorServico,
+                                servicoId = servicoId
+                            )
 
-                            if (carteiraResponse.isSuccessful) {
-                                Log.d(TAG, "✅ Valor R$ $valorServico adicionado à carteira com sucesso!")
-                                val transacao = carteiraResponse.body()
-                                if (transacao != null) {
-                                    Log.d(TAG, "   Transação ID: ${transacao.id}")
-                                    Log.d(TAG, "   Status: ${transacao.status}")
-                                    Log.d(TAG, "   Tipo: ${transacao.tipo}")
-                                }
-                            } else {
-                                val errorBody = carteiraResponse.errorBody()?.string()
-                                Log.e(TAG, "⚠️ Erro ao adicionar valor à carteira: ${carteiraResponse.code()}")
-                                Log.e(TAG, "   Error body: $errorBody")
-                                // Não falha a finalização do serviço por isso
-                            }
+                            Log.d(TAG, "✅ Pagamento processado!")
+                            Log.d(TAG, "   Saldo atualizado localmente")
+                            Log.d(TAG, "   Transação registrada")
+
                         } catch (e: Exception) {
-                            Log.e(TAG, "⚠️ Exceção ao adicionar valor à carteira: ${e.message}", e)
-                            // Não falha a finalização do serviço por isso
+                            Log.e(TAG, "⚠️ Erro ao processar pagamento localmente: ${e.message}", e)
+                            // Fallback: tentar via API
+                            try {
+                                Log.d(TAG, "🔄 Tentando fallback via API...")
+                                val solicitacaoDeposito = com.exemple.facilita.model.SolicitacaoDeposito(
+                                    valor = valorServico,
+                                    metodoPagamento = "SERVICO",
+                                    comprovante = "Serviço #$servicoId finalizado"
+                                )
+
+                                val carteiraResponse = RetrofitFactory.getCarteiraService()
+                                    .solicitarDeposito(solicitacaoDeposito, token)
+
+                                if (carteiraResponse.isSuccessful) {
+                                    Log.d(TAG, "✅ Fallback bem-sucedido via API")
+                                } else {
+                                    Log.e(TAG, "❌ Fallback API falhou: ${carteiraResponse.code()}")
+                                }
+                            } catch (fallbackError: Exception) {
+                                Log.e(TAG, "❌ Fallback API exception: ${fallbackError.message}")
+                            }
                         }
                     } else {
-                        Log.d(TAG, "ℹ️ Valor do serviço não informado, pulando adição à carteira")
+                        Log.d(TAG, "ℹ️ Valor do serviço não informado, pulando pagamento")
                     }
 
                     // Remover do cache de serviços aceitos

@@ -128,40 +128,51 @@ class CarteiraViewModel(application: android.app.Application) : androidx.lifecyc
             _errorMessage.value = null
 
             try {
-                // Carregar saldo salvo localmente
-                val saldoSalvo = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
-                val saldoBloqueadoSalvo = sharedPreferences.getFloat("saldo_bloqueado_$usuarioId", 0f).toDouble()
+                // SEMPRE usar saldo local como fonte da verdade
+                val saldoLocal = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
+                val saldoBloqueadoLocal = sharedPreferences.getFloat("saldo_bloqueado_$usuarioId", 0f).toDouble()
 
+                Log.d(tag, "💰 Carregando carteira do usuário $usuarioId")
+                Log.d(tag, "   Saldo local: R$ $saldoLocal")
+                Log.d(tag, "   Saldo bloqueado: R$ $saldoBloqueadoLocal")
+
+                // Tentar carregar da API, mas sempre priorizar saldo local
                 val response = carteiraService.getCarteira(usuarioId)
                 if (response.isSuccessful) {
                     val carteiraApi = response.body()
-                    // Usar saldo local se for maior (para manter depósitos simulados)
+                    // SEMPRE usar saldo local (acumulado), nunca substituir
                     _carteira.value = carteiraApi?.copy(
-                        saldo = maxOf(carteiraApi.saldo, saldoSalvo),
-                        saldoBloqueado = maxOf(carteiraApi.saldoBloqueado, saldoBloqueadoSalvo)
+                        saldo = saldoLocal,
+                        saldoBloqueado = saldoBloqueadoLocal
+                    ) ?: Carteira(
+                        id = usuarioId,
+                        usuarioId = usuarioId,
+                        saldo = saldoLocal,
+                        saldoBloqueado = saldoBloqueadoLocal
                     )
+                    Log.d(tag, "✅ Carteira carregada (saldo local preservado)")
                 } else {
-                    // Se não existir no backend, usar carteira local com saldo salvo
+                    // Criar carteira local
                     _carteira.value = Carteira(
                         id = usuarioId,
                         usuarioId = usuarioId,
-                        saldo = saldoSalvo,
-                        saldoBloqueado = saldoBloqueadoSalvo
+                        saldo = saldoLocal,
+                        saldoBloqueado = saldoBloqueadoLocal
                     )
-                    Log.d(tag, "Carteira criada localmente com saldo: $saldoSalvo")
+                    Log.d(tag, "📱 Carteira criada localmente com saldo acumulado: R$ $saldoLocal")
                 }
             } catch (e: Exception) {
-                // Em caso de erro, carregar saldo salvo localmente
-                val saldoSalvo = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
-                val saldoBloqueadoSalvo = sharedPreferences.getFloat("saldo_bloqueado_$usuarioId", 0f).toDouble()
+                // Em caso de erro, SEMPRE usar saldo local
+                val saldoLocal = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
+                val saldoBloqueadoLocal = sharedPreferences.getFloat("saldo_bloqueado_$usuarioId", 0f).toDouble()
 
                 _carteira.value = Carteira(
                     id = usuarioId,
                     usuarioId = usuarioId,
-                    saldo = saldoSalvo,
-                    saldoBloqueado = saldoBloqueadoSalvo
+                    saldo = saldoLocal,
+                    saldoBloqueado = saldoBloqueadoLocal
                 )
-                Log.d(tag, "Carteira inicializada localmente: ${e.message}")
+                Log.d(tag, "⚠️ Erro ao carregar API, usando saldo local: R$ $saldoLocal (${e.message})")
             } finally {
                 _isLoading.value = false
             }
@@ -173,15 +184,173 @@ class CarteiraViewModel(application: android.app.Application) : androidx.lifecyc
             _isLoading.value = true
 
             try {
+                // Carregar transações locais salvas
+                val transacoesLocais = carregarTransacoesLocais(usuarioId)
+
                 val response = carteiraService.getTransacoes(usuarioId)
                 if (response.isSuccessful) {
-                    _transacoes.value = response.body() ?: emptyList()
+                    val transacoesApi = response.body() ?: emptyList()
+                    // Mesclar transações da API com locais (remover duplicatas por ID)
+                    val todasTransacoes = (transacoesApi + transacoesLocais)
+                        .distinctBy { it.id }
+                        .sortedByDescending { it.dataTransacao }
+                    _transacoes.value = todasTransacoes
+                    Log.d(tag, "✅ ${todasTransacoes.size} transações carregadas (${transacoesApi.size} API + ${transacoesLocais.size} locais)")
+                } else {
+                    // Se falhar, usar apenas transações locais
+                    _transacoes.value = transacoesLocais
+                    Log.d(tag, "⚠️ Usando apenas ${transacoesLocais.size} transações locais")
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao carregar transações: ${e.message}"
+                // Em caso de erro, carregar transações locais
+                val transacoesLocais = carregarTransacoesLocais(usuarioId)
+                _transacoes.value = transacoesLocais
+                Log.d(tag, "❌ Erro ao carregar transações da API, usando ${transacoesLocais.size} locais: ${e.message}")
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * Adiciona pagamento de serviço à carteira
+     * Chamado automaticamente quando um serviço é finalizado
+     */
+    fun adicionarPagamentoServico(usuarioId: String, valorServico: Double, servicoId: Int) {
+        viewModelScope.launch {
+            Log.d(tag, "")
+            Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(tag, "💰 ADICIONANDO PAGAMENTO DE SERVIÇO")
+            Log.d(tag, "   Usuario ID: $usuarioId")
+            Log.d(tag, "   Serviço ID: $servicoId")
+            Log.d(tag, "   Valor: R$ $valorServico")
+            Log.d(tag, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            try {
+                // IMPORTANTE: Sempre carregar o saldo do SharedPreferences (fonte da verdade)
+                val saldoAtualPersistido = sharedPreferences.getFloat("saldo_$usuarioId", 0f).toDouble()
+
+                // Se carteira em memória não existe ou está desatualizada, usar o persistido
+                val saldoAtual = if (_carteira.value != null) {
+                    // Garantir que estamos usando o maior valor (o mais atualizado)
+                    maxOf(_carteira.value?.saldo ?: 0.0, saldoAtualPersistido)
+                } else {
+                    saldoAtualPersistido
+                }
+
+                // SOMAR o novo valor ao saldo existente
+                val novoSaldo = saldoAtual + valorServico
+
+                Log.d(tag, "📊 Cálculo do saldo:")
+                Log.d(tag, "   Saldo persistido: R$ $saldoAtualPersistido")
+                Log.d(tag, "   Saldo em memória: R$ ${_carteira.value?.saldo ?: 0.0}")
+                Log.d(tag, "   Saldo usado: R$ $saldoAtual")
+                Log.d(tag, "   + Valor serviço: R$ $valorServico")
+                Log.d(tag, "   = Novo saldo: R$ $novoSaldo")
+
+                // Atualizar saldo na carteira em memória
+                _carteira.value = _carteira.value?.copy(saldo = novoSaldo) ?: Carteira(
+                    id = usuarioId,
+                    usuarioId = usuarioId,
+                    saldo = novoSaldo,
+                    saldoBloqueado = 0.0
+                )
+
+                // SEMPRE salvar no SharedPreferences (fonte da verdade)
+                sharedPreferences.edit()
+                    .putFloat("saldo_$usuarioId", novoSaldo.toFloat())
+                    .apply()
+
+                // Criar nova transação
+                val format = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
+                val novaTransacao = Transacao(
+                    id = "SERV_${servicoId}_${System.currentTimeMillis()}",
+                    usuarioId = usuarioId,
+                    tipo = TipoTransacao.PAGAMENTO_SERVICO,
+                    valor = valorServico,
+                    status = StatusTransacao.CONCLUIDA,
+                    descricao = "💰 Pagamento recebido - Serviço #$servicoId (${format.format(valorServico)})",
+                    dataTransacao = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR"))
+                        .format(Date()),
+                    comprovante = "Serviço #$servicoId finalizado com sucesso"
+                )
+
+                // Adicionar ao topo da lista em memória
+                _transacoes.value = listOf(novaTransacao) + _transacoes.value
+
+                // SEMPRE salvar transação localmente para persistência
+                salvarTransacaoLocal(usuarioId, novaTransacao)
+
+                Log.d(tag, "✅ Pagamento adicionado com sucesso!")
+                Log.d(tag, "   Saldo anterior: ${format.format(saldoAtual)}")
+                Log.d(tag, "   Valor adicionado: ${format.format(valorServico)}")
+                Log.d(tag, "   Novo saldo: ${format.format(novoSaldo)}")
+                Log.d(tag, "   Transação ID: ${novaTransacao.id}")
+                Log.d(tag, "   Total transações: ${_transacoes.value.size}")
+
+                _successMessage.value = "💰 Pagamento de ${format.format(valorServico)} recebido! Novo saldo: ${format.format(novoSaldo)}"
+
+            } catch (e: Exception) {
+                Log.e(tag, "❌ Erro ao adicionar pagamento: ${e.message}", e)
+                _errorMessage.value = "Erro ao processar pagamento: ${e.message}"
+            }
+        }
+    }
+
+    private fun carregarTransacoesLocais(usuarioId: String): List<Transacao> {
+        return try {
+            val json = sharedPreferences.getString("transacoes_$usuarioId", "[]") ?: "[]"
+
+            if (json == "[]") {
+                Log.d(tag, "📋 Nenhuma transação local encontrada")
+                return emptyList()
+            }
+
+            // Usar Gson para deserializar
+            val gson = com.google.gson.Gson()
+            val type = object : com.google.gson.reflect.TypeToken<List<Transacao>>() {}.type
+            val transacoes: List<Transacao> = gson.fromJson(json, type) ?: emptyList()
+
+            Log.d(tag, "📋 ${transacoes.size} transações locais carregadas")
+            transacoes.forEach { t ->
+                Log.d(tag, "   • ${t.descricao}: R$ ${t.valor} (${t.status})")
+            }
+
+            transacoes
+        } catch (e: Exception) {
+            Log.e(tag, "❌ Erro ao carregar transações locais: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    private fun salvarTransacaoLocal(usuarioId: String, transacao: Transacao) {
+        try {
+            // Carregar transações existentes
+            val transacoesExistentes = carregarTransacoesLocais(usuarioId).toMutableList()
+
+            // Adicionar nova transação (evitar duplicatas)
+            if (transacoesExistentes.none { it.id == transacao.id }) {
+                transacoesExistentes.add(0, transacao) // Adicionar no topo
+
+                // Limitar a 100 transações locais para não sobrecarregar
+                val transacoesLimitadas = transacoesExistentes.take(100)
+
+                // Serializar com Gson
+                val gson = com.google.gson.Gson()
+                val json = gson.toJson(transacoesLimitadas)
+
+                // Salvar em SharedPreferences
+                sharedPreferences.edit()
+                    .putString("transacoes_$usuarioId", json)
+                    .apply()
+
+                Log.d(tag, "💾 Transação salva localmente: ${transacao.id}")
+                Log.d(tag, "   Total de transações locais: ${transacoesLimitadas.size}")
+            } else {
+                Log.d(tag, "⚠️ Transação ${transacao.id} já existe localmente")
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "❌ Erro ao salvar transação local: ${e.message}", e)
         }
     }
 

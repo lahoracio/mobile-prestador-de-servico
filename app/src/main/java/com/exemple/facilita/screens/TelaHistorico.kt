@@ -236,7 +236,26 @@ fun TelaHistorico(navController: NavController) {
                             PedidoHistoricoCard(
                                 pedido = pedido,
                                 onClick = {
-                                    navController.navigate("tela_detalhes_servico_aceito/${pedido.id}")
+                                    android.util.Log.d("TelaHistorico", "🔍 Clicado no pedido #${pedido.id} - Status: ${pedido.status}")
+
+                                    // Verificar o status do pedido
+                                    when (pedido.status) {
+                                        "EM_ANDAMENTO" -> {
+                                            // Se está em andamento, vai para tela de serviço aceito
+                                            android.util.Log.d("TelaHistorico", "➡️ Serviço em andamento, navegando para tela de detalhes do serviço aceito")
+                                            navController.navigate("tela_detalhes_servico_aceito/${pedido.id}")
+                                        }
+                                        "CONCLUIDO", "FINALIZADO", "CANCELADO" -> {
+                                            // Se finalizado ou cancelado, vai para tela de detalhes concluído
+                                            android.util.Log.d("TelaHistorico", "➡️ Serviço finalizado/cancelado, navegando para detalhes histórico")
+                                            navController.navigate("detalhes_pedido_concluido/${pedido.id}")
+                                        }
+                                        else -> {
+                                            // Status desconhecido, vai para detalhes por padrão
+                                            android.util.Log.d("TelaHistorico", "⚠️ Status desconhecido: ${pedido.status}, navegando para detalhes")
+                                            navController.navigate("detalhes_pedido_concluido/${pedido.id}")
+                                        }
+                                    }
                                 },
                                 primaryGreen = primaryGreen,
                                 cardBg = cardBg,

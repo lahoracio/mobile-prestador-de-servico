@@ -4,14 +4,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +30,8 @@ import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.screens.*
 import com.exemple.facilita.screens.TelaInicioPrestador
 import com.exemple.facilita.viewmodel.PerfilViewModel
+import com.exemple.facilita.utils.TokenManager
+import com.exemple.facilita.service.RetrofitFactory
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -146,6 +153,73 @@ fun AppNavHost(navController: NavHostController) {
                 TelaHistorico(navController)
             }
 
+            // Rota para detalhes do pedido concluído
+            composable("detalhes_pedido_concluido/{pedidoId}") { backStackEntry ->
+                val pedidoId = backStackEntry.arguments?.getString("pedidoId")?.toIntOrNull() ?: 0
+                val context = LocalContext.current
+                val token = TokenManager.obterTokenComBearer(context) ?: ""
+
+                var pedido by remember { mutableStateOf<com.exemple.facilita.service.PedidoHistorico?>(null) }
+                var isLoading by remember { mutableStateOf(true) }
+
+                LaunchedEffect(pedidoId) {
+                    val service = RetrofitFactory.getServicoService()
+                    service.getHistoricoPedidos(token, 1, 100).enqueue(object : retrofit2.Callback<com.exemple.facilita.service.HistoricoPedidosResponse> {
+                        override fun onResponse(
+                            call: retrofit2.Call<com.exemple.facilita.service.HistoricoPedidosResponse>,
+                            response: retrofit2.Response<com.exemple.facilita.service.HistoricoPedidosResponse>
+                        ) {
+                            if (response.isSuccessful) {
+                                pedido = response.body()?.data?.pedidos?.find { it.id == pedidoId }
+                            }
+                            isLoading = false
+                        }
+
+                        override fun onFailure(call: retrofit2.Call<com.exemple.facilita.service.HistoricoPedidosResponse>, t: Throwable) {
+                            isLoading = false
+                        }
+                    })
+                }
+
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFF019D31))
+                        }
+                    }
+                    pedido != null -> {
+                        TelaDetalhesPedidoConcluido(
+                            navController = navController,
+                            pedido = pedido!!
+                        )
+                    }
+                    else -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Text("Pedido não encontrado", color = Color.Red)
+                                Button(onClick = { navController.popBackStack() }) {
+                                    Text("Voltar")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             composable("tela_tipo_conta_servico") {
                 TelaTipoContaServico(navController)
