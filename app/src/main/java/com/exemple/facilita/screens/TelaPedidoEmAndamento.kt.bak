@@ -1,0 +1,1168 @@
+package com.exemple.facilita.screens
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.exemple.facilita.viewmodel.ServicoViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.Locale
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TelaPedidoEmAndamento(
+    navController: NavController,
+    servicoId: Int,
+    servicoViewModel: ServicoViewModel = viewModel()
+) {
+    val context = LocalContext.current
+
+    // Estados
+    val servicoState by servicoViewModel.servicoState.collectAsState()
+    var statusAtual by remember { mutableStateOf("INDO_BUSCAR") }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var showFinishDialog by remember { mutableStateOf(false) }
+    var tempoDecorrido by remember { mutableStateOf(0) }
+
+    // Cores do tema
+    val primaryGreen = Color(0xFF00E676)
+    val darkGreen = Color(0xFF00C853)
+    val accentCyan = Color(0xFF00E5FF)
+    val accentOrange = Color(0xFFFF9800)
+    val backgroundDark = Color(0xFF0A0E27)
+    val surfaceDark = Color(0xFF1A1F3A)
+    val cardBackground = Color(0xFF252D47)
+
+    // Animações
+    val infiniteTransition = rememberInfiniteTransition(label = "rotating")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    // Carregar serviço
+    LaunchedEffect(servicoId) {
+        servicoViewModel.carregarServico(servicoId, context)
+    }
+
+    // Timer
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            tempoDecorrido++
+        }
+    }
+
+    val servicoDetalhe = servicoState.servico
+
+    if (servicoState.isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundDark),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = primaryGreen)
+        }
+        return
+    }
+
+    if (servicoDetalhe == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundDark),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Erro ao carregar serviço", color = Color.White)
+        }
+        return
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        backgroundDark,
+                        Color(0xFF0D1428),
+                        Color(0xFF1A1F3A)
+                    )
+                )
+            )
+    ) {
+        // Efeitos decorativos de fundo
+        Box(
+            modifier = Modifier
+                .size(350.dp)
+                .offset(x = (-80).dp, y = (-80).dp)
+                .rotate(rotation * 0.5f)
+                .background(
+                    primaryGreen.copy(alpha = 0.08f),
+                    CircleShape
+                )
+                .blur(60.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .size(280.dp)
+                .align(Alignment.BottomEnd)
+                .offset(x = 80.dp, y = 80.dp)
+                .rotate(-rotation * 0.3f)
+                .background(
+                    accentCyan.copy(alpha = 0.06f),
+                    CircleShape
+                )
+                .blur(50.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // Header
+            Surface(
+                color = surfaceDark.copy(alpha = 0.95f),
+                shadowElevation = 8.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        // Confirmar antes de sair
+                        showConfirmDialog = true
+                    }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = Color.White
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+                        Text(
+                            "Pedido #${servicoDetalhe.id}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            "Em andamento",
+                            fontSize = 13.sp,
+                            color = primaryGreen
+                        )
+                    }
+
+                    // Timer
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = cardBackground
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = accentOrange,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "${tempoDecorrido / 60}:${String.format(Locale.getDefault(), "%02d", tempoDecorrido % 60)}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Conteúdo
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Card de Status Principal
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardBackground.copy(alpha = 0.8f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Ícone animado de status
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Anéis pulsantes
+                            Box(
+                                modifier = Modifier
+                                    .size(140.dp)
+                                    .scale(pulseScale)
+                                    .alpha(0.3f)
+                                    .background(
+                                        primaryGreen.copy(alpha = 0.3f),
+                                        CircleShape
+                                    )
+                                    .blur(15.dp)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(
+                                                primaryGreen,
+                                                darkGreen
+                                            )
+                                        ),
+                                        CircleShape
+                                    )
+                                    .border(3.dp, primaryGreen.copy(alpha = 0.5f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    when (statusAtual) {
+                                        "INDO_BUSCAR" -> Icons.Default.DirectionsCar
+                                        "NO_LOCAL" -> Icons.Default.LocationOn
+                                        "EXECUTANDO" -> Icons.Default.Build
+                                        "FINALIZANDO" -> Icons.Default.Check
+                                        else -> Icons.Default.Work
+                                    },
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            when (statusAtual) {
+                                "INDO_BUSCAR" -> "Indo para o local"
+                                "NO_LOCAL" -> "No local do serviço"
+                                "EXECUTANDO" -> "Executando serviço"
+                                "FINALIZANDO" -> "Finalizando"
+                                else -> "Em andamento"
+                            },
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            when (statusAtual) {
+                                "INDO_BUSCAR" -> "Navegue até o endereço do cliente"
+                                "NO_LOCAL" -> "Você chegou ao destino"
+                                "EXECUTANDO" -> "Serviço em execução"
+                                "FINALIZANDO" -> "Preparando para concluir"
+                                else -> "Atualize o status conforme o progresso"
+                            },
+                            fontSize = 14.sp,
+                            color = Color.White.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                // Linha do tempo de status
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardBackground.copy(alpha = 0.7f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            "Progresso do Serviço",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        StatusTimelineItem(
+                            title = "Indo para o local",
+                            isActive = statusAtual == "INDO_BUSCAR",
+                            isCompleted = listOf("NO_LOCAL", "EXECUTANDO", "FINALIZANDO").contains(statusAtual),
+                            icon = Icons.Default.DirectionsCar,
+                            isFirst = true
+                        )
+
+                        StatusTimelineItem(
+                            title = "Chegou no local",
+                            isActive = statusAtual == "NO_LOCAL",
+                            isCompleted = listOf("EXECUTANDO", "FINALIZANDO").contains(statusAtual),
+                            icon = Icons.Default.LocationOn
+                        )
+
+                        StatusTimelineItem(
+                            title = "Executando serviço",
+                            isActive = statusAtual == "EXECUTANDO",
+                            isCompleted = statusAtual == "FINALIZANDO",
+                            icon = Icons.Default.Build
+                        )
+
+                        StatusTimelineItem(
+                            title = "Concluir serviço",
+                            isActive = statusAtual == "FINALIZANDO",
+                            isCompleted = false,
+                            icon = Icons.Default.CheckCircle,
+                            isLast = true
+                        )
+                    }
+                }
+
+                // Informações do Cliente
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardBackground.copy(alpha = 0.7f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Cliente",
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    servicoDetalhe.contratante.usuario.nome,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                IconButton(
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:${servicoDetalhe.contratante.usuario.telefone}")
+                                        }
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(accentCyan.copy(alpha = 0.2f), CircleShape)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Phone,
+                                        contentDescription = "Ligar",
+                                        tint = accentCyan
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        // TODO: Abrir chat
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Chat em desenvolvimento",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(primaryGreen.copy(alpha = 0.2f), CircleShape)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Chat,
+                                        contentDescription = "Chat",
+                                        tint = primaryGreen
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Localização e Navegação
+                servicoDetalhe.localizacao?.let { loc ->
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = cardBackground.copy(alpha = 0.7f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF5252),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    "Localização do Serviço",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                "${loc.endereco}, ${loc.numero ?: "S/N"}",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                "${loc.bairro}, ${loc.cidade} - ${loc.estado}",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = {
+                                    val uri = Uri.parse(
+                                        "google.navigation:q=${loc.latitude},${loc.longitude}&mode=d"
+                                    )
+                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                        setPackage("com.google.android.apps.maps")
+                                    }
+                                    if (intent.resolveActivity(context.packageManager) != null) {
+                                        context.startActivity(intent)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFF5252)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Navigation, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Abrir Navegação", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // Detalhes do Serviço
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardBackground.copy(alpha = 0.7f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            "Detalhes do Serviço",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        ServiceDetailRow("Categoria", servicoDetalhe.categoria.nome)
+                        Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+
+                        ServiceDetailRow("Descrição", servicoDetalhe.descricao)
+
+                        servicoDetalhe.tempo_estimado?.let {
+                            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                            ServiceDetailRow("Tempo Estimado", "$it minutos")
+                        }
+
+                        Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Valor",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                "R$ ${servicoDetalhe.valor}",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryGreen
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(100.dp))
+            }
+        }
+
+        // Botões de ação flutuantes
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = surfaceDark.copy(alpha = 0.98f),
+            shadowElevation = 16.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Botão principal baseado no status
+                Button(
+                    onClick = {
+                        statusAtual = when (statusAtual) {
+                            "INDO_BUSCAR" -> "NO_LOCAL"
+                            "NO_LOCAL" -> "EXECUTANDO"
+                            "EXECUTANDO" -> "FINALIZANDO"
+                            else -> statusAtual
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryGreen
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = statusAtual != "FINALIZANDO"
+                ) {
+                    Icon(
+                        when (statusAtual) {
+                            "INDO_BUSCAR" -> Icons.Default.LocationOn
+                            "NO_LOCAL" -> Icons.Default.Build
+                            "EXECUTANDO" -> Icons.Default.Check
+                            else -> Icons.Default.ArrowForward
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        when (statusAtual) {
+                            "INDO_BUSCAR" -> "Cheguei no Local"
+                            "NO_LOCAL" -> "Iniciar Serviço"
+                            "EXECUTANDO" -> "Preparar Finalização"
+                            else -> "Próximo"
+                        },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = backgroundDark
+                    )
+                }
+
+                // Botão de deslize para concluir (só aparece no status final)
+                if (statusAtual == "FINALIZANDO") {
+                    SwipeToFinishButton(
+                        onFinish = {
+                            servicoViewModel.finalizarServico(
+                                servicoId = servicoDetalhe.id,
+                                context = context,
+                                onSuccess = {
+                                    // Navegar para tela de avaliação
+                                    val clienteNome = servicoDetalhe.contratante.usuario.nome
+                                    val valorServico = servicoDetalhe.valor
+
+                                    navController.navigate(
+                                        "avaliacao_cliente/${servicoDetalhe.id}/$clienteNome/$valorServico"
+                                    ) {
+                                        popUpTo("tela_pedido_em_andamento/${servicoDetalhe.id}") {
+                                            inclusive = true
+                                        }
+                                    }
+                                },
+                                onError = { errorMessage ->
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "❌ Erro: $errorMessage",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    // Dialog de confirmação para voltar
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            containerColor = cardBackground,
+            title = {
+                Text("Sair do serviço?", color = Color.White)
+            },
+            text = {
+                Text(
+                    "O serviço está em andamento. Tem certeza que deseja voltar?",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmDialog = false
+                    navController.popBackStack()
+                }) {
+                    Text("Sim", color = Color(0xFFFF5252))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Não", color = primaryGreen)
+                }
+            }
+        )
+    }
+
+    // Dialog de conclusão
+    if (showFinishDialog) {
+        AlertDialog(
+            onDismissRequest = { showFinishDialog = false },
+            containerColor = cardBackground,
+            title = {
+                Text("Concluir Serviço", color = Color.White)
+            },
+            text = {
+                Text(
+                    "Você completou todas as etapas do serviço?\n\nO cliente será notificado e o pagamento será processado.",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    // TODO: Chamar API para concluir serviço
+                    showFinishDialog = false
+                    navController.navigate("tela_inicio_prestador") {
+                        popUpTo("tela_inicio_prestador") { inclusive = true }
+                    }
+                    android.widget.Toast.makeText(
+                        context,
+                        "Serviço concluído com sucesso!",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }) {
+                    Text("Confirmar", color = primaryGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishDialog = false }) {
+                    Text("Cancelar", color = Color.White.copy(alpha = 0.6f))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun StatusTimelineItem(
+    title: String,
+    isActive: Boolean,
+    isCompleted: Boolean,
+    icon: ImageVector,
+    isFirst: Boolean = false,
+    isLast: Boolean = false
+) {
+    val primaryGreen = Color(0xFF00E676)
+    val accentGray = Color(0xFF666666)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!isFirst) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(12.dp)
+                        .background(if (isCompleted) primaryGreen else accentGray)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        when {
+                            isCompleted -> primaryGreen
+                            isActive -> primaryGreen.copy(alpha = 0.5f)
+                            else -> accentGray.copy(alpha = 0.3f)
+                        },
+                        CircleShape
+                    )
+                    .border(
+                        2.dp,
+                        if (isActive) primaryGreen else Color.Transparent,
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(32.dp)
+                        .background(if (isCompleted) primaryGreen else accentGray)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 8.dp)
+        ) {
+            Text(
+                title,
+                fontSize = 15.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    isActive -> primaryGreen
+                    isCompleted -> Color.White
+                    else -> Color.White.copy(alpha = 0.5f)
+                }
+            )
+
+            if (isActive) {
+                Text(
+                    "Em progresso",
+                    fontSize = 12.sp,
+                    color = primaryGreen.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ServiceDetailRow(label: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            label,
+            fontSize = 13.sp,
+            color = Color.White.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            value,
+            fontSize = 15.sp,
+            color = Color.White,
+            lineHeight = 22.sp
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToFinishButton(
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var offsetX by remember { mutableStateOf(0f) }
+    var isFinishing by remember { mutableStateOf(false) }
+    val maxWidth = 280f // Largura máxima para arrastar
+
+    val backgroundColor = Color(0xFF1A1F3A)
+    val successColor = Color(0xFF00E676)
+    val handleColor = Color(0xFF00C853)
+
+    // Animações
+    val progress = (offsetX / maxWidth).coerceIn(0f, 1f)
+    val scale by animateFloatAsState(
+        targetValue = if (isFinishing) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+
+    val glowAlpha by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(200),
+        label = "glow"
+    )
+
+    // Animação de pulso
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+
+    LaunchedEffect(isFinishing) {
+        if (isFinishing) {
+            delay(500)
+            onFinish()
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(72.dp)
+    ) {
+        // Brilho de fundo animado
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(pulseScale)
+                .alpha(pulseAlpha * 0.3f)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            successColor.copy(alpha = 0.3f),
+                            successColor.copy(alpha = 0.1f),
+                            Color.Transparent
+                        )
+                    ),
+                    RoundedCornerShape(20.dp)
+                )
+                .blur(20.dp)
+        )
+
+        // Container principal
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scale),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 8.dp
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Barra de progresso
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    successColor.copy(alpha = 0.3f),
+                                    successColor.copy(alpha = 0.5f)
+                                )
+                            ),
+                            RoundedCornerShape(20.dp)
+                        )
+                )
+
+                // Efeito de brilho
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .alpha(glowAlpha * 0.5f)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    successColor.copy(alpha = 0.3f),
+                                    successColor.copy(alpha = 0.5f)
+                                )
+                            )
+                        )
+                        .blur(15.dp)
+                )
+
+                // Texto e ícones
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 80.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Texto da esquerda
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.alpha(1f - progress)
+                    ) {
+                        Icon(
+                            Icons.Default.SwipeRight,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Deslize para finalizar",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                "Arraste até o final →",
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+
+                    // Ícone de sucesso (aparece quando completa)
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = successColor,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .scale(progress)
+                            .alpha(progress)
+                    )
+                }
+
+                // Handle deslizante
+                Box(
+                    modifier = Modifier
+                        .offset { androidx.compose.ui.unit.IntOffset(offsetX.toInt(), 0) }
+                        .size(64.dp)
+                        .align(Alignment.CenterStart)
+                        .padding(4.dp)
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    if (offsetX >= maxWidth) {
+                                        isFinishing = true
+                                    } else {
+                                        offsetX = 0f
+                                    }
+                                },
+                                onDragCancel = {
+                                    offsetX = 0f
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    val newOffset = (offsetX + dragAmount).coerceIn(0f, maxWidth)
+                                    offsetX = newOffset
+                                }
+                            )
+                        }
+                ) {
+                    // Efeito de brilho atrás do handle
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .scale(1.5f)
+                            .alpha(0.4f)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        handleColor.copy(alpha = 0.8f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                CircleShape
+                            )
+                            .blur(15.dp)
+                    )
+
+                    // Handle principal
+                    Card(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = handleColor
+                        ),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 12.dp
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Ícone animado
+                            Icon(
+                                if (progress >= 0.95f) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .rotate(progress * 360f)
+                            )
+                        }
+                    }
+
+                    // Partículas de sucesso
+                    if (progress >= 0.95f) {
+                        repeat(8) { index ->
+                            val angle = (index * 45f) * (Math.PI / 180f)
+                            val distance = 30.dp * progress
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(
+                                        x = (distance.value * kotlin.math.cos(angle)).dp,
+                                        y = (distance.value * kotlin.math.sin(angle)).dp
+                                    )
+                                    .size(6.dp)
+                                    .alpha(progress)
+                                    .background(
+                                        successColor,
+                                        CircleShape
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Instruções pulsantes
+        if (progress < 0.1f) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = 40.dp)
+                    .alpha(pulseAlpha),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.SwipeRight,
+                    contentDescription = null,
+                    tint = successColor,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .scale(pulseScale)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "Arraste para a direita",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}

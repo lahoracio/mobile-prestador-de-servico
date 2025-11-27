@@ -405,6 +405,96 @@ fun AppNavHost(navController: NavHostController) {
                 }
             }
 
+            // Rota para tela de detalhes do serviço aceito
+            composable("tela_detalhes_servico_aceito/{servicoId}") { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                val context = LocalContext.current
+
+                // Observar o estado do serviço
+                val servicoState by servicoViewModel.servicoState.collectAsState()
+
+                LaunchedEffect(servicoId) {
+                    servicoViewModel.carregarServico(servicoId, context)
+                }
+
+                when {
+                    servicoState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFF019D31))
+                        }
+                    }
+                    servicoState.servico != null -> {
+                        TelaDetalhesServicoAceito(
+                            navController = navController,
+                            servicoDetalhe = servicoState.servico!!
+                        )
+                    }
+                    servicoState.error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = servicoState.error ?: "Erro ao carregar serviço",
+                                    color = Color.Red
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { navController.popBackStack() }) {
+                                    Text("Voltar")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Rota para tela de pedido em andamento
+            composable("tela_pedido_em_andamento/{servicoId}") { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                TelaPedidoEmAndamento(
+                    navController = navController,
+                    servicoId = servicoId,
+                    servicoViewModel = servicoViewModel
+                )
+            }
+
+            // Rota para tela de avaliação do cliente
+            composable("avaliacao_cliente/{servicoId}/{clienteNome}/{valorServico}") { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                val clienteNome = backStackEntry.arguments?.getString("clienteNome") ?: ""
+                val valorServico = backStackEntry.arguments?.getString("valorServico") ?: "0"
+                TelaAvaliacaoCliente(
+                    navController = navController,
+                    servicoId = servicoId,
+                    clienteNome = clienteNome,
+                    valorServico = valorServico
+                )
+            }
+
+            // Rota para navegação em tempo real
+            composable(
+                "navegacao_tempo_real/{origemLat}/{origemLng}/{destinoLat}/{destinoLng}?paradas={paradas}"
+            ) { backStackEntry ->
+                val origemLat = backStackEntry.arguments?.getString("origemLat")?.toDoubleOrNull() ?: 0.0
+                val origemLng = backStackEntry.arguments?.getString("origemLng")?.toDoubleOrNull() ?: 0.0
+                val destinoLat = backStackEntry.arguments?.getString("destinoLat")?.toDoubleOrNull() ?: 0.0
+                val destinoLng = backStackEntry.arguments?.getString("destinoLng")?.toDoubleOrNull() ?: 0.0
+                val paradasJson = backStackEntry.arguments?.getString("paradas")
+
+                TelaNavegacaoTempoReal(
+                    navController = navController,
+                    origemLat = origemLat,
+                    origemLng = origemLng,
+                    destinoLat = destinoLat,
+                    destinoLng = destinoLng,
+                    paradasJson = paradasJson
+                )
+            }
+
             // Rota para tela de rastreamento em tempo real
             composable("tela_rastreamento_servico/{servicoId}") { backStackEntry ->
                 val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0

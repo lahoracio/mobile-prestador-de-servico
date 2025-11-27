@@ -31,6 +31,11 @@ interface ServicoService {
         @Header("Authorization") token: String
     ): Call<ServicosResponse>
 
+    @GET("v1/facilita/servico/meus-servicos")
+    suspend fun getMeusServicos(
+        @Header("Authorization") token: String
+    ): Response<ServicosResponse>
+
     @GET("v1/facilita/servico/{id}")
     suspend fun getServicoPorId(
         @Header("Authorization") token: String,

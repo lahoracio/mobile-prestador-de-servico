@@ -42,14 +42,13 @@ fun TelaDetalhesServicoAceito(
 ) {
     val context = LocalContext.current
 
-    // Modo Claro - Baseado no TelaInicioPrestador
-    val primaryGreen = Color(0xFF2E7D32)
-    val darkGreen = Color(0xFF1B5E20)
-    val accentCyan = Color(0xFF0097A7)
-    val lightBg = Color(0xFFF5F5F5)
-    val cardBg = Color.White
-    val textPrimary = Color(0xFF212121)
-    val textSecondary = Color(0xFF757575)
+    // Cores do tema futurista
+    val primaryGreen = Color(0xFF00E676)
+    val darkGreen = Color(0xFF00C853)
+    val accentCyan = Color(0xFF00E5FF)
+    val backgroundDark = Color(0xFF0A0E27)
+    val surfaceDark = Color(0xFF1A1F3A)
+    val cardBackground = Color(0xFF252D47)
 
     // Estados de animação
     var animateHeader by remember { mutableStateOf(false) }
@@ -92,9 +91,9 @@ fun TelaDetalhesServicoAceito(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFAFAFA),
-                        lightBg,
-                        Color(0xFFEEEEEE)
+                        backgroundDark,
+                        Color(0xFF0D1428),
+                        Color(0xFF1A1F3A)
                     )
                 )
             )
@@ -139,8 +138,8 @@ fun TelaDetalhesServicoAceito(
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(
-                                    cardBg.copy(alpha = 0.98f),
-                                    cardBg.copy(alpha = 0.98f)
+                                    surfaceDark.copy(alpha = 0.95f),
+                                    cardBackground.copy(alpha = 0.95f)
                                 )
                             )
                         )
@@ -185,7 +184,7 @@ fun TelaDetalhesServicoAceito(
                     Card(
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = cardBg.copy(alpha = 0.9f)
+                            containerColor = cardBackground.copy(alpha = 0.7f)
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -308,7 +307,7 @@ fun TelaDetalhesServicoAceito(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Ligar", color = textPrimary, fontWeight = FontWeight.Bold)
+                                Text("Ligar", color = backgroundDark, fontWeight = FontWeight.Bold)
                             }
 
                             Button(
@@ -322,7 +321,7 @@ fun TelaDetalhesServicoAceito(
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = cardBg
+                                    containerColor = surfaceDark
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
@@ -667,7 +666,7 @@ fun TelaDetalhesServicoAceito(
                     .padding(20.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = cardBg.copy(alpha = 0.98f)
+                    containerColor = surfaceDark.copy(alpha = 0.95f)
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
@@ -697,7 +696,7 @@ fun TelaDetalhesServicoAceito(
                         "Prosseguir para o Pedido",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = textPrimary
+                        color = backgroundDark
                     )
                 }
             }

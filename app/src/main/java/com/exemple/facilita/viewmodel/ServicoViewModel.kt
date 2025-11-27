@@ -58,6 +58,40 @@ class ServicoViewModel : ViewModel() {
 
                     if (token != null) {
                         val service = RetrofitFactory.getServicoService()
+
+                        // Tentar buscar em "meus serviços" primeiro (serviços aceitos pelo prestador)
+                        try {
+                            Log.d(TAG, "🌐 Chamando API: GET /v1/facilita/servico/meus-servicos")
+
+                            // Usar suspend function
+                            val meusServicosResponse = service.getMeusServicos(token)
+
+                            if (meusServicosResponse.isSuccessful && meusServicosResponse.body() != null) {
+                                val meusServicos = meusServicosResponse.body()!!.data
+                                val servicoEncontrado = meusServicos.find { it.id == servicoId }
+
+                                if (servicoEncontrado != null) {
+                                    Log.d(TAG, "✅ Serviço encontrado em 'meus serviços'")
+                                    Log.d(TAG, "   ID: ${servicoEncontrado.id}")
+                                    Log.d(TAG, "   Descrição: ${servicoEncontrado.descricao}")
+                                    Log.d(TAG, "   Status: ${servicoEncontrado.status}")
+
+                                    // Salvar no cache
+                                    salvarServicoAceito(servicoEncontrado)
+
+                                    _servicoState.value = ServicoState(
+                                        isLoading = false,
+                                        servico = servicoEncontrado,
+                                        error = null
+                                    )
+                                    return@launch
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "⚠️ Erro ao buscar em 'meus serviços', tentando serviços disponíveis: ${e.message}")
+                        }
+
+                        // Se não encontrou em "meus serviços", tentar nos serviços disponíveis
                         Log.d(TAG, "🌐 Chamando API: GET /v1/facilita/servico/$servicoId")
                         val response = service.getServicoPorId(token, servicoId)
 
@@ -241,6 +275,69 @@ class ServicoViewModel : ViewModel() {
     fun resetFinalizarState() {
         _finalizarServicoState.value = FinalizarServicoState.Idle
     }
+
+    // Sobrecarga com callbacks diretos para facilitar uso em Composables
+    fun finalizarServico(
+        servicoId: Int,
+        context: Context,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            Log.d(TAG, "")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🏁 FINALIZANDO SERVIÇO")
+            Log.d(TAG, "   ServicoId: $servicoId")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            try {
+                val token = TokenManager.obterTokenComBearer(context)
+                if (token.isNullOrEmpty()) {
+                    Log.e(TAG, "❌ Token não encontrado")
+                    onError("Token não encontrado. Faça login novamente.")
+                    return@launch
+                }
+
+                Log.d(TAG, "🔑 Token obtido: ${token.take(20)}...")
+                Log.d(TAG, "📡 Chamando API PATCH /servico/$servicoId/finalizar")
+
+                val response = RetrofitFactory.getServicoService().finalizarServico(servicoId, token)
+
+                Log.d(TAG, "📡 Resposta recebida:")
+                Log.d(TAG, "   Status Code: ${response.code()}")
+                Log.d(TAG, "   Is Successful: ${response.isSuccessful}")
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+                    Log.d(TAG, "✅ Serviço finalizado com sucesso!")
+                    Log.d(TAG, "   Status Code: ${responseBody?.status_code}")
+                    Log.d(TAG, "   Mensagem: ${responseBody?.message}")
+
+                    // Remover do cache de serviços aceitos
+                    val novosServicos = _servicosAceitos.value.toMutableMap()
+                    novosServicos.remove(servicoId)
+                    _servicosAceitos.value = novosServicos
+                    Log.d(TAG, "📦 Serviço removido do cache")
+
+                    // Chamar callback de sucesso
+                    onSuccess()
+                    Log.d(TAG, "✅ Callback onSuccess executado")
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = errorBody ?: "Erro ${response.code()}: ${response.message()}"
+                    Log.e(TAG, "❌ Erro ao finalizar serviço")
+                    Log.e(TAG, "   Código: ${response.code()}")
+                    Log.e(TAG, "   Mensagem: ${response.message()}")
+                    Log.e(TAG, "   Body: $errorBody")
+
+                    onError(errorMessage)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Exceção ao finalizar serviço: ${e.message}", e)
+                onError(e.message ?: "Erro ao finalizar serviço")
+            }
+        }
+    }
 }
 
 sealed class FinalizarServicoState {
@@ -249,4 +346,3 @@ sealed class FinalizarServicoState {
     object Success : FinalizarServicoState()
     data class Error(val message: String) : FinalizarServicoState()
 }
-
