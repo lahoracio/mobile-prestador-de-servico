@@ -522,25 +522,48 @@ fun TelaAcompanhamentoLocalizacao(
                 }
             )
 
-            // Botão para centralizar na sua localização
-            FloatingActionButton(
-                onClick = {
-                    myLocation?.let { location ->
-                        googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
-                    } ?: run {
-                        Toast.makeText(context, "Localização não disponível", Toast.LENGTH_SHORT).show()
-                    }
-                },
+            // Botões de ação (Chat e Localização)
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
-                containerColor = primaryGreen
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    Icons.Default.MyLocation,
-                    contentDescription = "Minha localização",
-                    tint = Color.White
-                )
+                // Botão de Chat
+                servicoDetalhe?.let { servico ->
+                    FloatingActionButton(
+                        onClick = {
+                            navController.navigate(
+                                "chat_ao_vivo/${servico.id}/${servico.id_contratante}/${contratanteNome}/${servico.id_prestador}/${servico.prestador?.usuario?.nome ?: "Prestador"}"
+                            )
+                        },
+                        containerColor = Color(0xFF0097A7)
+                    ) {
+                        Icon(
+                            Icons.Default.Chat,
+                            contentDescription = "Chat",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // Botão para centralizar na sua localização
+                FloatingActionButton(
+                    onClick = {
+                        myLocation?.let { location ->
+                            googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
+                        } ?: run {
+                            Toast.makeText(context, "Localização não disponível", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    containerColor = primaryGreen
+                ) {
+                    Icon(
+                        Icons.Default.MyLocation,
+                        contentDescription = "Minha localização",
+                        tint = Color.White
+                    )
+                }
             }
 
             // Indicador de status

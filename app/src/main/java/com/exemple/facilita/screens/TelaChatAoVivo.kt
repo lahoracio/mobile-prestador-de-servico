@@ -1,32 +1,251 @@
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFEBEE)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFD32F2F)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = error,
+                            color = Color(0xFFD32F2F),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            LaunchedEffect(error) {
+                delay(3000)
+                chatViewModel.clearError()
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageBubble(
+    message: ChatMessage,
+    isMyMessage: Boolean,
+    myMessageBg: Color,
+    theirMessageBg: Color,
+    textPrimary: Color,
+    textSecondary: Color
+) {
+    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val timeString = dateFormat.format(Date(message.timestamp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = if (isMyMessage) myMessageBg else theirMessageBg
+            ),
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isMyMessage) 16.dp else 4.dp,
+                bottomEnd = if (isMyMessage) 4.dp else 16.dp
+            ),
+            elevation = CardDefaults.cardElevation(2.dp),
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                if (!isMyMessage) {
+                    Text(
+                        text = message.senderName,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+
+                Text(
+                    text = message.mensagem,
+                    fontSize = 15.sp,
+                    color = if (isMyMessage) Color.White else textPrimary,
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = timeString,
+                        fontSize = 11.sp,
+                        color = if (isMyMessage) Color.White.copy(alpha = 0.8f) else textSecondary
+                    )
+
+                    if (isMyMessage) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Enviado",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TypingIndicatorBubble(
+    userName: String,
+    theirMessageBg: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = theirMessageBg
+            ),
+            shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$userName está digitando",
+                    fontSize = 13.sp,
+                    color = Color(0xFF757575),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                TypingDots()
+            }
+        }
+    }
+}
+
+@Composable
+fun TypingDots() {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(3) { index ->
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, delayMillis = index * 200),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "dot$index"
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF757575).copy(alpha = alpha))
+            )
+        }
+    }
+}
+
+@Composable
+fun EmptyChatState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.Chat,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = Color(0xFF2E7D32).copy(alpha = 0.3f)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Nenhuma mensagem ainda",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF212121),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Envie uma mensagem para iniciar\na conversa com o cliente",
+            fontSize = 14.sp,
+            color = Color(0xFF757575),
+            textAlign = TextAlign.Center,
+            lineHeight = 20.sp
+        )
+    }
+}
 package com.exemple.facilita.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import android.util.Log
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.exemple.facilita.model.ChatMessage
+import com.exemple.facilita.viewmodel.ChatViewModel
 import com.exemple.facilita.websocket.ChatSocketManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -39,389 +258,383 @@ fun TelaChatAoVivo(
     contratanteId: Int,
     contratanteNome: String,
     prestadorId: Int,
-    prestadorNome: String
+    prestadorNome: String,
+    chatViewModel: ChatViewModel = viewModel()
 ) {
-    // Log de debug dos parâmetros recebidos
-    android.util.Log.d("TelaChatAoVivo", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    android.util.Log.d("TelaChatAoVivo", "📱 TELA CHAT INICIADA")
-    android.util.Log.d("TelaChatAoVivo", "🔢 servicoId: $servicoId")
-    android.util.Log.d("TelaChatAoVivo", "👤 contratanteId: $contratanteId")
-    android.util.Log.d("TelaChatAoVivo", "📝 contratanteNome: $contratanteNome")
-    android.util.Log.d("TelaChatAoVivo", "👨‍💼 prestadorId: $prestadorId")
-    android.util.Log.d("TelaChatAoVivo", "📝 prestadorNome: $prestadorNome")
-    android.util.Log.d("TelaChatAoVivo", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Cores
-    val primaryGreen = Color(0xFF00B14F)
-    val bgLight = Color(0xFFFAFAFA)
-    val myMessageBg = Color(0xFFE8F5E9)
-    val otherMessageBg = Color.White
-    val textPrimary = Color(0xFF1A1A1A)
+    // Cores do tema moderno
+    val primaryGreen = Color(0xFF2E7D32)
+    val darkGreen = Color(0xFF1B5E20)
+    val accentCyan = Color(0xFF00FF88)
+    val lightBg = Color(0xFFF5F5F5)
+    val cardBg = Color.White
+    val textPrimary = Color(0xFF212121)
     val textSecondary = Color(0xFF757575)
+    val myMessageBg = Color(0xFF2E7D32)
+    val theirMessageBg = Color(0xFFE8F5E9)
 
     // Estados
     var messageText by remember { mutableStateOf("") }
-    val chatRepository = remember { com.exemple.facilita.data.ChatRepository(context) }
-    val messages = remember { mutableStateListOf<ChatMessage>().apply { addAll(chatRepository.loadMessages(servicoId)) } }
-    var isConnected by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val messages by chatViewModel.messages.collectAsState()
+    val connectionState by chatViewModel.connectionState.collectAsState()
+    val typingIndicator by chatViewModel.typingIndicator.collectAsState()
+    val errorMessage by chatViewModel.errorMessage.collectAsState()
+
+    // Lista para scroll automático
     val listState = rememberLazyListState()
 
-    // Gerenciador do Socket (Singleton - mantém conexão entre telas)
-    val chatManager = remember {
-        android.util.Log.d("TelaChatAoVivo", "🔧 Obtendo instância do ChatSocketManager...")
-        android.util.Log.d("TelaChatAoVivo", "   userId: $prestadorId")
-        android.util.Log.d("TelaChatAoVivo", "   userType: prestador")
-        android.util.Log.d("TelaChatAoVivo", "   userName: $prestadorNome")
+    // Animações
+    var isVisible by remember { mutableStateOf(false) }
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
 
-        ChatSocketManager.getInstance()
+    // Inicializa o chat ao carregar
+    LaunchedEffect(servicoId) {
+        isVisible = true
+        chatViewModel.initializeChat(
+            servicoId = servicoId,
+            userId = prestadorId,
+            userName = prestadorNome,
+            userType = "prestador"
+        )
     }
 
-    // Conectar ao WebSocket
-    LaunchedEffect(Unit) {
-        android.util.Log.d("TelaChatAoVivo", "🚀 Iniciando conexão WebSocket...")
-        android.util.Log.d("TelaChatAoVivo", "   ServicoId para conectar: $servicoId")
-
-        // TESTE: Verificar se Socket.IO funciona
-        try {
-            com.exemple.facilita.test.SocketIOTester.testarConexao()
-        } catch (e: Exception) {
-            android.util.Log.e("TelaChatAoVivo", "Erro ao testar socket: ${e.message}")
+    // Auto-scroll quando novas mensagens chegam
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            delay(100)
+            listState.animateScrollToItem(messages.size - 1)
         }
+    }
 
-        chatManager.connect(
-            userId = prestadorId,
-            userType = "prestador",
-            userName = prestadorNome,
-            servicoId = servicoId,
-            onMessageReceived = { message ->
-                android.util.Log.d("TelaChatAoVivo", "📩 Mensagem recebida no UI: ${message.mensagem}")
+    // Cleanup ao sair
+    DisposableEffect(servicoId) {
+        onDispose {
+            chatViewModel.leaveChat(servicoId)
+        }
+    }
 
-                // Adicionar à lista e salvar localmente (garantir main thread)
-                scope.launch {
-                    messages.add(message)
-                    chatRepository.saveMessages(servicoId, messages.toList())
+    // Mostra erro se houver
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { error ->
+            Log.e("TelaChatAoVivo", "Erro: $error")
+        }
+    }
 
-                    if (messages.isNotEmpty()) {
-                        listState.animateScrollToItem(messages.size - 1)
-                    }
-                }
-            },
-            onError = { error ->
-                android.util.Log.e("TelaChatAoVivo", "❌ Erro recebido no UI: $error")
-                errorMessage = error
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFAFAFA),
+                        lightBg,
+                        Color(0xFFEEEEEE)
+                    )
+                )
+            )
+    ) {
+        // Efeitos de fundo decorativos
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .offset(x = (-100).dp, y = (-100).dp)
+                .background(primaryGreen.copy(alpha = 0.1f), CircleShape)
+                .blur(80.dp)
         )
 
-        // Aguardar um pouco para verificar conexão
-        android.util.Log.d("TelaChatAoVivo", "⏳ Aguardando 1s para verificar conexão...")
-        kotlinx.coroutines.delay(1000)
-        isConnected = chatManager.isConnected()
-        android.util.Log.d("TelaChatAoVivo", "✅ Status de conexão: $isConnected")
+        Box(
+            modifier = Modifier
+                .size(250.dp)
+                .align(Alignment.BottomEnd)
+                .offset(x = 100.dp, y = 100.dp)
+                .background(accentCyan.copy(alpha = 0.08f), CircleShape)
+                .blur(60.dp)
+        )
 
-        // Verificar status de conexão periodicamente
-        while (true) {
-            kotlinx.coroutines.delay(2000)
-            val connected = chatManager.isConnected()
-            if (connected != isConnected) {
-                isConnected = connected
-                android.util.Log.d("TelaChatAoVivo", "Status de conexão mudou: $connected")
-            }
-        }
-    }
-
-    // NÃO desconectar ao sair - mantém conexão ativa
-    // A conexão é singleton e persiste entre navegações
-    DisposableEffect(Unit) {
-        onDispose {
-            android.util.Log.d("TelaChatAoVivo", "📴 Saindo da tela (conexão mantida)")
-            // Salvar mensagens ao sair
-            chatRepository.saveMessages(servicoId, messages.toList())
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = contratanteNome,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(
-                                        if (isConnected) primaryGreen else Color.Gray,
-                                        CircleShape
-                                    )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // Header personalizado
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn()
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = cardBg,
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Botão voltar
+                        IconButton(
+                            onClick = { navController.popBackStack() },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(
+                                    lightBg,
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Voltar",
+                                tint = textPrimary
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Avatar
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(primaryGreen, accentCyan)
+                                    )
+                                )
+                                .border(2.dp, Color.White, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = if (isConnected) "Online" else "Offline",
-                                fontSize = 12.sp,
-                                color = textSecondary
+                                text = contratanteNome.firstOrNull()?.toString() ?: "C",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Nome e status
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = contratanteNome,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textPrimary
+                            )
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Indicador de conexão
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when (connectionState) {
+                                                ChatSocketManager.ConnectionState.CONNECTED -> Color(
+                                                    0xFF4CAF50
+                                                )
+                                                ChatSocketManager.ConnectionState.CONNECTING -> Color(
+                                                    0xFFFFC107
+                                                )
+                                                else -> Color(0xFFF44336)
+                                            }
+                                        )
+                                        .alpha(pulseAlpha)
+                                )
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                Text(
+                                    text = when (connectionState) {
+                                        ChatSocketManager.ConnectionState.CONNECTED -> "Online"
+                                        ChatSocketManager.ConnectionState.CONNECTING -> "Conectando..."
+                                        ChatSocketManager.ConnectionState.DISCONNECTED -> "Offline"
+                                        ChatSocketManager.ConnectionState.ERROR -> "Erro"
+                                    },
+                                    fontSize = 12.sp,
+                                    color = textSecondary
+                                )
+                            }
+                        }
+
+                        // Menu de opções
+                        IconButton(
+                            onClick = { /* Opções */ },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(lightBg, CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "Opções",
+                                tint = textPrimary
                             )
                         }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = "Voltar",
-                            tint = textPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = textPrimary
-                )
-            )
-        },
-        containerColor = bgLight,
-        bottomBar = {
-            Surface(
-                color = Color.White,
-                shadowElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = messageText,
-                        onValueChange = { messageText = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        placeholder = { Text("Digite sua mensagem...") },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryGreen,
-                            unfocusedBorderColor = Color(0xFFE0E0E0)
-                        ),
-                        maxLines = 4
-                    )
-
-                    FloatingActionButton(
-                        onClick = {
-                            if (messageText.isNotBlank()) {
-                                if (!isConnected) {
-                                    errorMessage = "Você está offline. Aguarde a reconexão."
-                                    return@FloatingActionButton
-                                }
-
-                                val mensagemParaEnviar = messageText.trim()
-
-                                chatManager.sendMessage(
-                                    servicoId = servicoId,
-                                    mensagem = mensagemParaEnviar,
-                                    targetUserId = contratanteId,
-                                    onSuccess = {
-                                        // Mensagem enviada com sucesso
-                                        android.util.Log.d("TelaChatAoVivo", "✅ Mensagem enviada! Aguardando broadcast...")
-                                    },
-                                    onError = { error ->
-                                        // Erro ao enviar
-                                        android.util.Log.e("TelaChatAoVivo", "❌ Erro: $error")
-                                        errorMessage = error
-                                    }
-                                )
-
-                                // NÃO adicionar localmente - o broadcast do servidor já vai adicionar
-                                // Isso evita mensagens duplicadas
-                                messageText = ""
-                            }
-                        },
-                        containerColor = if (messageText.isNotBlank() && isConnected) primaryGreen else Color.Gray,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Enviar",
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (messages.isEmpty()) {
-                // Estado vazio
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color(0xFFBDBDBD)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Nenhuma mensagem ainda",
-                        fontSize = 16.sp,
-                        color = textSecondary,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Envie a primeira mensagem para iniciar a conversa",
-                        fontSize = 14.sp,
-                        color = Color(0xFFBDBDBD),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            } else {
-                // Lista de mensagens
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(messages) { message ->
-                        MessageBubble(
-                            message = message,
-                            isMyMessage = message.sender == "prestador",
-                            myMessageBg = myMessageBg,
-                            otherMessageBg = otherMessageBg,
-                            primaryGreen = primaryGreen,
-                            textPrimary = textPrimary,
-                            textSecondary = textSecondary
-                        )
-                    }
                 }
             }
 
-            // Mensagem de erro
+            // Área de mensagens
             AnimatedVisibility(
-                visible = errorMessage != null,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier.align(Alignment.TopCenter)
+                visible = isVisible,
+                enter = fadeIn() + expandVertically()
             ) {
-                Card(
+                Box(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
-                    elevation = CardDefaults.cardElevation(4.dp)
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    if (messages.isEmpty()) {
+                        // Estado vazio
+                        EmptyChatState()
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(messages, key = { it.id }) { message ->
+                                MessageBubble(
+                                    message = message,
+                                    isMyMessage = message.sender == "prestador",
+                                    myMessageBg = myMessageBg,
+                                    theirMessageBg = theirMessageBg,
+                                    textPrimary = textPrimary,
+                                    textSecondary = textSecondary
+                                )
+                            }
+
+                            // Indicador de digitação
+                            if (typingIndicator.first) {
+                                item {
+                                    TypingIndicatorBubble(
+                                        userName = typingIndicator.second,
+                                        theirMessageBg = theirMessageBg
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Campo de entrada
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn()
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = cardBg,
+                    shadowElevation = 8.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            tint = Color(0xFFC62828)
+                        // Campo de texto
+                        OutlinedTextField(
+                            value = messageText,
+                            onValueChange = { newText ->
+                                messageText = newText
+                                if (newText.isNotBlank()) {
+                                    chatViewModel.startTypingIndicator(servicoId)
+                                } else {
+                                    chatViewModel.stopTypingIndicator(servicoId)
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp, max = 120.dp),
+                            placeholder = {
+                                Text(
+                                    "Digite uma mensagem...",
+                                    color = textSecondary
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryGreen,
+                                unfocusedBorderColor = Color(0xFFE0E0E0),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                cursorColor = primaryGreen
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Send
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onSend = {
+                                    if (messageText.isNotBlank()) {
+                                        chatViewModel.sendMessage(
+                                            servicoId = servicoId,
+                                            mensagem = messageText,
+                                            targetUserId = contratanteId
+                                        )
+                                        messageText = ""
+                                    }
+                                }
+                            ),
+                            maxLines = 4
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = errorMessage ?: "",
-                            color = Color(0xFFC62828),
-                            fontSize = 14.sp
-                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Botão enviar
+                        FloatingActionButton(
+                            onClick = {
+                                if (messageText.isNotBlank()) {
+                                    chatViewModel.sendMessage(
+                                        servicoId = servicoId,
+                                        mensagem = messageText,
+                                        targetUserId = contratanteId
+                                    )
+                                    messageText = ""
+                                }
+                            },
+                            containerColor = if (messageText.isNotBlank()) primaryGreen else Color(
+                                0xFFE0E0E0
+                            ),
+                            contentColor = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Send,
+                                contentDescription = "Enviar",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-fun MessageBubble(
-    message: ChatMessage,
-    isMyMessage: Boolean,
-    myMessageBg: Color,
-    otherMessageBg: Color,
-    primaryGreen: Color,
-    textPrimary: Color,
-    textSecondary: Color
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
-    ) {
-        Card(
-            modifier = Modifier.widthIn(max = 280.dp),
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isMyMessage) 16.dp else 4.dp,
-                bottomEnd = if (isMyMessage) 4.dp else 16.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isMyMessage) myMessageBg else otherMessageBg
-            ),
-            elevation = CardDefaults.cardElevation(2.dp)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                if (!isMyMessage) {
-                    Text(
-                        text = message.userName,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = primaryGreen
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-
-                Text(
-                    text = message.mensagem,
-                    fontSize = 15.sp,
-                    color = textPrimary,
-                    lineHeight = 20.sp
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = formatTimestamp(message.timestamp),
-                    fontSize = 11.sp,
-                    color = textSecondary,
-                    modifier = Modifier.align(if (isMyMessage) Alignment.End else Alignment.Start)
-                )
-            }
-        }
-    }
-}
-
-fun formatTimestamp(timestamp: String): String {
-    return try {
-        // Input format: timestamp vem em UTC (ISO 8601)
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
-        }
-
-        // Output format: horário local do dispositivo
-        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-        val date = inputFormat.parse(timestamp)
-        date?.let { outputFormat.format(it) } ?: "Agora"
-    } catch (e: Exception) {
-        android.util.Log.e("TelaChatAoVivo", "Erro ao formatar timestamp: ${e.message}")
-        "Agora"
-    }
-}
+        // Snackbar para erros
+        errorMessage?.let { error ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Card(
 

@@ -313,26 +313,25 @@ fun TelaDetalhesServicoAceito(
 
                             Button(
                                 onClick = {
-                                    // TODO: Implementar chat
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "Chat em desenvolvimento",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
+                                    // Navegar para o chat
+                                    navController.navigate(
+                                        "chat_ao_vivo/${servicoDetalhe.id}/${servicoDetalhe.id_contratante}/${servicoDetalhe.contratante.usuario.nome}/${servicoDetalhe.id_prestador}/${servicoDetalhe.prestador?.usuario?.nome ?: "Prestador"}"
+                                    )
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = cardBg
+                                    containerColor = primaryGreen
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Chat,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.White
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Chat", fontWeight = FontWeight.Bold)
+                                Text("Chat", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
