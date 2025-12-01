@@ -139,8 +139,8 @@ fun TelaDetalhesServicoAceito(
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(
-                                    cardBg.copy(alpha = 0.98f),
-                                    cardBg.copy(alpha = 0.98f)
+                                    primaryGreen,
+                                    darkGreen
                                 )
                             )
                         )
@@ -256,7 +256,7 @@ fun TelaDetalhesServicoAceito(
                             Text(
                                 text = "Confira todos os detalhes abaixo",
                                 fontSize = 15.sp,
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = textSecondary,
                                 textAlign = TextAlign.Center
                             )
                         }

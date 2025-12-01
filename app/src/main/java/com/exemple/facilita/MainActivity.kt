@@ -28,18 +28,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.screens.*
-import com.exemple.facilita.screens.TelaInicioPrestador
+import com.exemple.facilita.screens.TelaChatAoVivo
+import com.exemple.facilita.screens.TelaPedidoEmAndamento
 import com.exemple.facilita.viewmodel.PerfilViewModel
+import com.exemple.facilita.viewmodel.ServicoViewModel
+import com.exemple.facilita.viewmodel.ChatViewModel
+import com.exemple.facilita.call.CallViewModel
+import com.exemple.facilita.data.service.WebSocketService
 import com.exemple.facilita.utils.TokenManager
 import com.exemple.facilita.service.RetrofitFactory
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-
-// IMPORTANTE - Adicione estes imports
 import com.exemple.facilita.webrtc.WebRtcModule
-import com.exemple.facilita.data.service.WebSocketService
-import com.exemple.facilita.call.CallViewModel
-import com.exemple.facilita.navigation.addCallNavigation // Import do navigation que você criou
+import com.exemple.facilita.navigation.addCallNavigation
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +58,7 @@ fun AppNavHost(navController: NavHostController) {
     // ViewModels compartilhados entre todas as telas
     val perfilViewModel: PerfilViewModel = viewModel()
     val prestadorViewModel: com.exemple.facilita.viewmodel.PrestadorViewModel = viewModel()
-    val servicoViewModel: com.exemple.facilita.viewmodel.ServicoViewModel = viewModel()
+    val servicoViewModel: ServicoViewModel = viewModel()
     val notificacaoViewModel: com.exemple.facilita.viewmodel.NotificacaoServicoViewModel = viewModel()
 
     // 🔴 ADICIONE ESTES VIEWMODELS PARA CHAMADAS
@@ -65,7 +66,7 @@ fun AppNavHost(navController: NavHostController) {
     val webSocketService = remember { WebSocketService() }
 
     val context = LocalContext.current
-    val token = com.exemple.facilita.utils.TokenManager.obterTokenComBearer(context) ?: ""
+    val token = TokenManager.obterTokenComBearer(context) ?: ""
 
     // Estados de notificação
     val novoServico by notificacaoViewModel.novoServico.collectAsState()

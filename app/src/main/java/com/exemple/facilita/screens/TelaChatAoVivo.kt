@@ -1,211 +1,3 @@
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFFEBEE)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFD32F2F)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = error,
-                            color = Color(0xFFD32F2F),
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
-
-            LaunchedEffect(error) {
-                delay(3000)
-                chatViewModel.clearError()
-            }
-        }
-    }
-}
-
-@Composable
-fun MessageBubble(
-    message: ChatMessage,
-    isMyMessage: Boolean,
-    myMessageBg: Color,
-    theirMessageBg: Color,
-    textPrimary: Color,
-    textSecondary: Color
-) {
-    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val timeString = dateFormat.format(Date(message.timestamp))
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
-    ) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = if (isMyMessage) myMessageBg else theirMessageBg
-            ),
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isMyMessage) 16.dp else 4.dp,
-                bottomEnd = if (isMyMessage) 4.dp else 16.dp
-            ),
-            elevation = CardDefaults.cardElevation(2.dp),
-            modifier = Modifier.widthIn(max = 280.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
-                if (!isMyMessage) {
-                    Text(
-                        text = message.senderName,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2E7D32),
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-
-                Text(
-                    text = message.mensagem,
-                    fontSize = 15.sp,
-                    color = if (isMyMessage) Color.White else textPrimary,
-                    lineHeight = 20.sp
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = timeString,
-                        fontSize = 11.sp,
-                        color = if (isMyMessage) Color.White.copy(alpha = 0.8f) else textSecondary
-                    )
-
-                    if (isMyMessage) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = "Enviado",
-                            modifier = Modifier.size(14.dp),
-                            tint = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TypingIndicatorBubble(
-    userName: String,
-    theirMessageBg: Color
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = theirMessageBg
-            ),
-            shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
-            elevation = CardDefaults.cardElevation(2.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "$userName está digitando",
-                    fontSize = 13.sp,
-                    color = Color(0xFF757575),
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                TypingDots()
-            }
-        }
-    }
-}
-
-@Composable
-fun TypingDots() {
-    val infiniteTransition = rememberInfiniteTransition(label = "typing")
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        repeat(3) { index ->
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 0.3f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(600, delayMillis = index * 200),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "dot$index"
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF757575).copy(alpha = alpha))
-            )
-        }
-    }
-}
-
-@Composable
-fun EmptyChatState() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            Icons.Default.Chat,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = Color(0xFF2E7D32).copy(alpha = 0.3f)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Nenhuma mensagem ainda",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF212121),
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Envie uma mensagem para iniciar\na conversa com o cliente",
-            fontSize = 14.sp,
-            color = Color(0xFF757575),
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp
-        )
-    }
-}
 package com.exemple.facilita.screens
 
 import android.util.Log
@@ -230,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -241,12 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.exemple.facilita.model.ChatMessage
 import com.exemple.facilita.viewmodel.ChatViewModel
 import com.exemple.facilita.websocket.ChatSocketManager
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -261,12 +50,8 @@ fun TelaChatAoVivo(
     prestadorNome: String,
     chatViewModel: ChatViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
     // Cores do tema moderno
     val primaryGreen = Color(0xFF2E7D32)
-    val darkGreen = Color(0xFF1B5E20)
     val accentCyan = Color(0xFF00FF88)
     val lightBg = Color(0xFFF5F5F5)
     val cardBg = Color.White
@@ -637,4 +422,212 @@ fun TelaChatAoVivo(
                 contentAlignment = Alignment.BottomCenter
             ) {
                 Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFEBEE)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFD32F2F)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = error,
+                            color = Color(0xFFD32F2F),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            LaunchedEffect(error) {
+                delay(3000)
+                chatViewModel.clearError()
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageBubble(
+    message: ChatMessage,
+    isMyMessage: Boolean,
+    myMessageBg: Color,
+    theirMessageBg: Color,
+    textPrimary: Color,
+    textSecondary: Color
+) {
+    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val timeString = dateFormat.format(Date(message.timestamp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = if (isMyMessage) myMessageBg else theirMessageBg
+            ),
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isMyMessage) 16.dp else 4.dp,
+                bottomEnd = if (isMyMessage) 4.dp else 16.dp
+            ),
+            elevation = CardDefaults.cardElevation(2.dp),
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                if (!isMyMessage) {
+                    Text(
+                        text = message.senderName,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+
+                Text(
+                    text = message.mensagem,
+                    fontSize = 15.sp,
+                    color = if (isMyMessage) Color.White else textPrimary,
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = timeString,
+                        fontSize = 11.sp,
+                        color = if (isMyMessage) Color.White.copy(alpha = 0.8f) else textSecondary
+                    )
+
+                    if (isMyMessage) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Enviado",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TypingIndicatorBubble(
+    userName: String,
+    theirMessageBg: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = theirMessageBg
+            ),
+            shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$userName está digitando",
+                    fontSize = 13.sp,
+                    color = Color(0xFF757575),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                TypingDots()
+            }
+        }
+    }
+}
+
+@Composable
+fun TypingDots() {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(3) { index ->
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, delayMillis = index * 200),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "dot$index"
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF757575).copy(alpha = alpha))
+            )
+        }
+    }
+}
+
+@Composable
+fun EmptyChatState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.ChatBubbleOutline,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = Color(0xFF2E7D32).copy(alpha = 0.3f)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Nenhuma mensagem ainda",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF212121),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Envie uma mensagem para iniciar\na conversa com o cliente",
+            fontSize = 14.sp,
+            color = Color(0xFF757575),
+            textAlign = TextAlign.Center,
+            lineHeight = 20.sp
+        )
+    }
+}
 
