@@ -3,6 +3,7 @@ package com.exemple.facilita.websocket
 import android.util.Log
 import com.exemple.facilita.model.ChatMessage
 import com.exemple.facilita.model.UserInfo
+import com.exemple.facilita.util.ChatConfig
 import com.google.gson.Gson
 import io.socket.client.IO
 import io.socket.client.Socket
@@ -25,11 +26,13 @@ class ChatSocketManager private constructor() {
         }
 
         private const val TAG = "ChatSocketManager"
-        private const val SOCKET_URL = "https://facilita-c6hhb9csgygudrdz.canadacentral-01.azurewebsites.net"
     }
 
     private var socket: Socket? = null
     private val gson = Gson()
+
+    private val socketUrl: String
+        get() = ChatConfig.SOCKET_URL
 
     // Estados observáveis
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -71,12 +74,26 @@ class ChatSocketManager private constructor() {
                 timeout = 20000
             }
 
-            socket = IO.socket(SOCKET_URL, opts)
+            val url = socketUrl
+            Log.d(TAG, "Conectando ao socket: $url")
+            socket = IO.socket(url, opts)
 
             setupSocketListeners()
             socket?.connect()
 
-            Log.d(TAG, "Tentando conectar ao servidor: $SOCKET_URL")
+            Log.d(TAG, "Tentando conectar ao servidor: $socketUrl")
+
+            // Listener genérico para debug - captura TODOS os eventos
+            socket?.on("*") { args ->
+                try {
+                    Log.d(TAG, "🔔 Evento genérico recebido com ${args.size} argumentos")
+                    args.forEachIndexed { index, arg ->
+                        Log.d(TAG, "🔔 Argumento $index: $arg")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro no listener genérico: ${e.message}")
+                }
+            }
         } catch (e: URISyntaxException) {
             Log.e(TAG, "Erro de URI ao conectar: ${e.message}")
             _connectionState.value = ConnectionState.ERROR
@@ -114,46 +131,20 @@ class ChatSocketManager private constructor() {
                 _errorMessage.value = "Erro de conexão: ${error?.toString()}"
             }
 
-            // Evento: Receber mensagem
+            // Evento: Receber mensagem (conforme documentação -> receive_message)
             on("receive_message") { args ->
+                Log.d(TAG, "📩 Evento 'receive_message' recebido (principal)")
                 try {
                     val data = args[0] as JSONObject
-                    Log.d(TAG, "📩 Mensagem recebida: $data")
-
-                    val servicoId = data.optInt("servicoId")
-                    val mensagem = data.optString("mensagem", "")
-                    val sender = data.optString("sender", "")
-                    val timestamp = data.optLong("timestamp", System.currentTimeMillis())
-
-                    // Extrair informações do usuário
-                    val userInfo = data.optJSONObject("userInfo")
-                    val senderName = userInfo?.optString("userName") ?: "Usuário"
-                    val senderUserId = userInfo?.optInt("userId") ?: 0
-                    val senderPhoto = userInfo?.optString("userPhoto")
-
-                    val chatMessage = ChatMessage(
-                        id = "${System.currentTimeMillis()}_${senderUserId}",
-                        servicoId = servicoId,
-                        mensagem = mensagem,
-                        sender = sender,
-                        senderUserId = senderUserId,
-                        senderName = senderName,
-                        senderPhoto = senderPhoto,
-                        timestamp = timestamp
-                    )
-
-                    // Adiciona a mensagem à lista
-                    val currentMessages = _messages.value.toMutableList()
-                    currentMessages.add(chatMessage)
-                    _messages.value = currentMessages
-
-                    Log.d(TAG, "✅ Mensagem adicionada: ${chatMessage.mensagem}")
+                    Log.d(TAG, "📩 Payload completo: $data")
+                    processIncomingMessage(data)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Erro ao processar mensagem recebida: ${e.message}")
+                    Log.e(TAG, "❌ Erro ao processar evento 'receive_message': ${e.message}", e)
+                    e.printStackTrace()
                 }
             }
 
-            // Evento: Usuário está digitando
+            // Evento: Usuário está digitando (user_typing)
             on("user_typing") { args ->
                 try {
                     val data = args[0] as JSONObject
@@ -173,20 +164,118 @@ class ChatSocketManager private constructor() {
                 _errorMessage.value = errorMsg
             }
 
-            // Evento: Mensagem enviada com sucesso
+            // Evento: Mensagem enviada com sucesso (opcional)
             on("message_sent") { args ->
                 try {
                     val data = args[0] as JSONObject
-                    Log.d(TAG, "✅ Mensagem enviada com sucesso: $data")
+                    Log.d(TAG, "✅ Confirmação de envio recebida: $data")
                 } catch (e: Exception) {
                     Log.e(TAG, "Erro ao processar confirmação de envio: ${e.message}")
+                }
+            }
+
+            // Eventos alternativos que o servidor pode usar (fallback)
+            on("message") { args ->
+                Log.d(TAG, "📩 Evento 'message' recebido (alternativo)")
+                try {
+                    val data = args[0] as JSONObject
+                    Log.d(TAG, "📩 Payload: $data")
+                    // Processar igual ao receive_message
+                    processIncomingMessage(data)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao processar evento 'message': ${e.message}", e)
+                }
+            }
+
+            on("chat_message") { args ->
+                Log.d(TAG, "📩 Evento 'chat_message' recebido (alternativo)")
+                try {
+                    val data = args[0] as JSONObject
+                    Log.d(TAG, "📩 Payload: $data")
+                    processIncomingMessage(data)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao processar evento 'chat_message': ${e.message}", e)
+                }
+            }
+
+            on("new_message") { args ->
+                Log.d(TAG, "📩 Evento 'new_message' recebido (alternativo)")
+                try {
+                    val data = args[0] as JSONObject
+                    Log.d(TAG, "📩 Payload: $data")
+                    processIncomingMessage(data)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao processar evento 'new_message': ${e.message}", e)
                 }
             }
         }
     }
 
     /**
-     * Registra o usuário conectado
+     * Processa mensagem recebida (método auxiliar para evitar duplicação de código)
+     */
+    private fun processIncomingMessage(data: JSONObject) {
+        try {
+            val servicoId = data.optInt("servicoId")
+            val mensagem = data.optString("mensagem", "")
+            val sender = data.optString("sender", "")
+            val timestamp = data.optLong("timestamp", System.currentTimeMillis())
+
+            Log.d(TAG, "📩 Processando: servicoId=$servicoId, sender=$sender, mensagem=$mensagem")
+
+            // Extrair informações do usuário (tentar múltiplas fontes)
+            val userInfo = data.optJSONObject("userInfo")
+            val senderName = userInfo?.optString("userName")
+                ?: data.optString("senderName")
+                ?: data.optString("userName", "Usuário")
+            val senderUserId = userInfo?.optInt("userId")
+                ?: data.optInt("userId")
+                ?: data.optInt("senderId", 0)
+            val senderPhoto = userInfo?.optString("userPhoto")
+                ?: data.optString("senderPhoto")
+
+            Log.d(TAG, "📩 Dados extraídos: userName=$senderName, userId=$senderUserId")
+
+            // Verificar se mensagem já existe (para evitar duplicação)
+            val currentMessages = _messages.value
+            val isDuplicate = currentMessages.any { existingMsg ->
+                existingMsg.mensagem == mensagem &&
+                existingMsg.sender == sender &&
+                // Tolerância de 2 segundos no timestamp para considerar duplicata
+                Math.abs(existingMsg.timestamp - timestamp) < 2000
+            }
+
+            if (isDuplicate) {
+                Log.w(TAG, "⚠️ Mensagem duplicada detectada e ignorada: '$mensagem'")
+                return
+            }
+
+            val chatMessage = ChatMessage(
+                id = "${timestamp}_${senderUserId}_${sender}",
+                servicoId = servicoId,
+                mensagem = mensagem,
+                sender = sender,
+                senderUserId = senderUserId,
+                senderName = senderName,
+                senderPhoto = senderPhoto,
+                timestamp = timestamp
+            )
+
+            // Adiciona a mensagem à lista
+            val updatedMessages = currentMessages.toMutableList()
+            updatedMessages.add(chatMessage)
+            _messages.value = updatedMessages
+
+            Log.d(TAG, "✅ Mensagem processada e adicionada: '${chatMessage.mensagem}' de ${chatMessage.senderName} (${chatMessage.sender})")
+            Log.d(TAG, "✅ Total de mensagens: ${updatedMessages.size}")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Erro ao processar mensagem: ${e.message}", e)
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Registra o usuário conectado (user_connected)
      */
     fun registerUser(userId: Int, userType: String, userName: String) {
         try {
@@ -204,7 +293,7 @@ class ChatSocketManager private constructor() {
     }
 
     /**
-     * Entra na sala do serviço
+     * Entra na sala do serviço (join_servico)
      */
     fun joinServico(servicoId: Int) {
         try {
@@ -216,7 +305,7 @@ class ChatSocketManager private constructor() {
     }
 
     /**
-     * Envia mensagem para o chat
+     * Envia mensagem para o chat (send_message)
      */
     fun sendMessage(
         servicoId: Int,
@@ -224,7 +313,8 @@ class ChatSocketManager private constructor() {
         sender: String,
         targetUserId: Int,
         senderName: String,
-        senderPhoto: String? = null
+        senderPhoto: String? = null,
+        senderUserId: Int = 0
     ) {
         try {
             val messageData = JSONObject().apply {
@@ -240,15 +330,16 @@ class ChatSocketManager private constructor() {
             }
 
             socket?.emit("send_message", messageData)
-            Log.d(TAG, "📤 Enviando mensagem: $mensagem")
+            Log.d(TAG, "📤 Enviando mensagem para servicoId=$servicoId, sender=$sender, target=$targetUserId")
+            Log.d(TAG, "📤 Conteúdo: $mensagem")
 
-            // Adiciona a mensagem localmente (otimista)
+            // Adiciona a mensagem localmente (otimista) - com o userId correto do remetente
             val chatMessage = ChatMessage(
                 id = "${System.currentTimeMillis()}_local",
                 servicoId = servicoId,
                 mensagem = mensagem,
                 sender = sender,
-                senderUserId = targetUserId,
+                senderUserId = senderUserId, // Corrigido: usar senderUserId em vez de targetUserId
                 senderName = senderName,
                 senderPhoto = senderPhoto,
                 timestamp = System.currentTimeMillis()
@@ -257,14 +348,16 @@ class ChatSocketManager private constructor() {
             val currentMessages = _messages.value.toMutableList()
             currentMessages.add(chatMessage)
             _messages.value = currentMessages
+
+            Log.d(TAG, "✅ Mensagem adicionada localmente: sender=$sender, userId=$senderUserId")
         } catch (e: Exception) {
-            Log.e(TAG, "Erro ao enviar mensagem: ${e.message}")
+            Log.e(TAG, "Erro ao enviar mensagem: ${e.message}", e)
             _errorMessage.value = "Erro ao enviar mensagem: ${e.message}"
         }
     }
 
     /**
-     * Indica que o usuário está digitando
+     * Indica que o usuário está digitando (user_typing)
      */
     fun sendTypingIndicator(servicoId: Int, userName: String, isTyping: Boolean) {
         try {
@@ -281,7 +374,7 @@ class ChatSocketManager private constructor() {
     }
 
     /**
-     * Sai da sala do serviço
+     * Sai da sala do serviço (leave_servico)
      */
     fun leaveServico(servicoId: Int) {
         try {
@@ -321,4 +414,3 @@ class ChatSocketManager private constructor() {
         return socket?.connected() == true
     }
 }
-

@@ -1,4 +1,4 @@
-   package com.exemple.facilita.screens
+package com.exemple.facilita.screens
 
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,6 +32,14 @@ import com.exemple.facilita.model.ServicoDetalhe
 import com.exemple.facilita.service.LocationUpdate
 import com.exemple.facilita.utils.TokenManager
 import com.exemple.facilita.viewmodel.RastreamentoViewModel
+import com.exemple.facilita.viewmodel.ChatViewModel
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import android.util.Log
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -117,6 +125,37 @@ fun TelaRastreamentoServico(
     DisposableEffect(Unit) {
         onDispose {
             rastreamentoViewModel.stopTracking()
+        }
+    }
+
+    // Chat (campo de digitação) - inicializa e gerencia conexão de chat para este serviço
+    val chatViewModel: ChatViewModel = viewModel()
+    var chatMessageText by remember { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(servicoDetalhe.id) {
+        // Inicializa o chat com dados do prestador (se disponíveis)
+        val prestadorUserId = servicoDetalhe.prestador?.id_usuario ?: 0
+        val prestadorUserName = servicoDetalhe.prestador?.usuario?.nome ?: "Prestador"
+        try {
+            chatViewModel.initializeChat(
+                servicoId = servicoDetalhe.id,
+                userId = prestadorUserId,
+                userName = prestadorUserName,
+                userType = "prestador"
+            )
+        } catch (e: Exception) {
+            // Fail silently; ChatViewModel logará
+        }
+    }
+
+    DisposableEffect(servicoDetalhe.id) {
+        onDispose {
+            try {
+                chatViewModel.leaveChat(servicoDetalhe.id)
+            } catch (e: Exception) {
+                // ignore
+            }
         }
     }
 
@@ -257,6 +296,89 @@ fun TelaRastreamentoServico(
                         contentDescription = "Centralizar",
                         tint = Color.White
                     )
+                }
+            }
+
+            // Campo de digitação do chat sobre o mapa (fixo na parte inferior)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .imePadding()
+                        .navigationBarsPadding(),
+                    color = Color.White,
+                    shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = chatMessageText,
+                            onValueChange = { newText ->
+                                chatMessageText = newText
+                            },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Digite uma mensagem...") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryGreen,
+                                unfocusedBorderColor = Color(0xFFE0E0E0),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                cursorColor = primaryGreen
+                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = {
+                                if (chatMessageText.isNotBlank()) {
+                                    try {
+                                        chatViewModel.sendMessage(
+                                            servicoId = servicoDetalhe.id,
+                                            mensagem = chatMessageText.trim(),
+                                            targetUserId = servicoDetalhe.id_contratante
+                                        )
+                                        chatMessageText = ""
+                                        keyboardController?.hide()
+                                    } catch (e: Exception) {
+                                        Log.e("TelaRastreamentoServico", "Erro ao enviar mensagem: ${e.message}")
+                                    }
+                                }
+                            }),
+                            maxLines = 4
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        FloatingActionButton(
+                            onClick = {
+                                if (chatMessageText.isNotBlank()) {
+                                    try {
+                                        chatViewModel.sendMessage(
+                                            servicoId = servicoDetalhe.id,
+                                            mensagem = chatMessageText.trim(),
+                                            targetUserId = servicoDetalhe.id_contratante
+                                        )
+                                        chatMessageText = ""
+                                        keyboardController?.hide()
+                                    } catch (e: Exception) {
+                                        Log.e("TelaRastreamentoServico", "Erro ao enviar mensagem: ${e.message}")
+                                    }
+                                }
+                            },
+                            containerColor = primaryGreen,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = "Enviar", tint = Color.White)
+                        }
+                    }
                 }
             }
         }
@@ -421,4 +543,3 @@ private fun startTracking(
         userName = userName
     )
 }
-

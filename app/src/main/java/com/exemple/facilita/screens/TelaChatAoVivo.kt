@@ -24,12 +24,15 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.material3.LocalTextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.exemple.facilita.model.ChatMessage
@@ -276,138 +279,131 @@ fun TelaChatAoVivo(
             }
 
             // Área de mensagens
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn() + expandVertically()
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    if (messages.isEmpty()) {
-                        // Estado vazio
-                        EmptyChatState()
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(messages, key = { it.id }) { message ->
-                                MessageBubble(
-                                    message = message,
-                                    isMyMessage = message.sender == "prestador",
-                                    myMessageBg = myMessageBg,
-                                    theirMessageBg = theirMessageBg,
-                                    textPrimary = textPrimary,
-                                    textSecondary = textSecondary
-                                )
-                            }
+                if (messages.isEmpty()) {
+                    // Estado vazio
+                    EmptyChatState()
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(messages, key = { it.id }) { message ->
+                            MessageBubble(
+                                message = message,
+                                isMyMessage = message.sender == "prestador",
+                                myMessageBg = myMessageBg,
+                                theirMessageBg = theirMessageBg,
+                                textPrimary = textPrimary,
+                                textSecondary = textSecondary
+                            )
+                        }
 
-                            // Indicador de digitação
-                            if (typingIndicator.first) {
-                                item {
-                                    TypingIndicatorBubble(
-                                        userName = typingIndicator.second,
-                                        theirMessageBg = theirMessageBg
-                                    )
-                                }
+                        // Indicador de digitação
+                        if (typingIndicator.first) {
+                            item {
+                                TypingIndicatorBubble(
+                                    userName = typingIndicator.second,
+                                    theirMessageBg = theirMessageBg
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // Campo de entrada
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn()
+            // Campo de entrada - SEMPRE VISÍVEL
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding()
+                    .navigationBarsPadding(),
+                color = cardBg,
+                shadowElevation = 8.dp
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = cardBg,
-                    shadowElevation = 8.dp
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    Row(
+                    // Campo de texto
+                    OutlinedTextField(
+                        value = messageText,
+                        onValueChange = { newText ->
+                            messageText = newText
+                            if (newText.isNotBlank()) {
+                                chatViewModel.startTypingIndicator(servicoId)
+                            } else {
+                                chatViewModel.stopTypingIndicator(servicoId)
+                            }
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        // Campo de texto
-                        OutlinedTextField(
-                            value = messageText,
-                            onValueChange = { newText ->
-                                messageText = newText
-                                if (newText.isNotBlank()) {
-                                    chatViewModel.startTypingIndicator(servicoId)
-                                } else {
-                                    chatViewModel.stopTypingIndicator(servicoId)
-                                }
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 48.dp, max = 120.dp),
-                            placeholder = {
-                                Text(
-                                    "Digite uma mensagem...",
-                                    color = textSecondary
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryGreen,
-                                unfocusedBorderColor = Color(0xFFE0E0E0),
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                cursorColor = primaryGreen
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Send
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
-                                    if (messageText.isNotBlank()) {
-                                        chatViewModel.sendMessage(
-                                            servicoId = servicoId,
-                                            mensagem = messageText,
-                                            targetUserId = contratanteId
-                                        )
-                                        messageText = ""
-                                    }
-                                }
-                            ),
-                            maxLines = 4
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        // Botão enviar
-                        FloatingActionButton(
-                            onClick = {
+                            .weight(1f)
+                            .heightIn(min = 56.dp, max = 120.dp),
+                        placeholder = {
+                            Text(
+                                "Digite sua mensagem...",
+                                color = textSecondary,
+                                fontSize = 15.sp
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryGreen,
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFF8F8F8),
+                            cursorColor = primaryGreen
+                        ),
+                        shape = RoundedCornerShape(28.dp),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Send
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
                                 if (messageText.isNotBlank()) {
                                     chatViewModel.sendMessage(
                                         servicoId = servicoId,
-                                        mensagem = messageText,
+                                        mensagem = messageText.trim(),
                                         targetUserId = contratanteId
                                     )
                                     messageText = ""
                                 }
-                            },
-                            containerColor = if (messageText.isNotBlank()) primaryGreen else Color(
-                                0xFFE0E0E0
-                            ),
-                            contentColor = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Send,
-                                contentDescription = "Enviar",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                            }
+                        ),
+                        maxLines = 4,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 15.sp)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Botão enviar
+                    FloatingActionButton(
+                        onClick = {
+                            if (messageText.isNotBlank()) {
+                                chatViewModel.sendMessage(
+                                    servicoId = servicoId,
+                                    mensagem = messageText.trim(),
+                                    targetUserId = contratanteId
+                                )
+                                messageText = ""
+                            }
+                        },
+                        containerColor = if (messageText.isNotBlank()) primaryGreen else Color(0xFFE0E0E0),
+                        modifier = Modifier.size(56.dp),
+                        contentColor = if (messageText.isNotBlank()) Color.White else Color(0xFF9E9E9E)
+                    ) {
+                        Icon(
+                            Icons.Default.Send,
+                            contentDescription = "Enviar mensagem",
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             }
@@ -630,4 +626,3 @@ fun EmptyChatState() {
         )
     }
 }
-

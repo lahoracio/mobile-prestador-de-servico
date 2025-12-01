@@ -97,21 +97,25 @@ class ChatViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                Log.d(TAG, "Enviando mensagem de userId=$currentUserId (${currentUserName}) tipo=$currentUserType")
+                Log.d(TAG, "Para targetUserId=$targetUserId no servicoId=$servicoId")
+
                 chatSocketManager.sendMessage(
                     servicoId = servicoId,
                     mensagem = mensagem.trim(),
                     sender = currentUserType,
                     targetUserId = targetUserId,
                     senderName = currentUserName,
-                    senderPhoto = senderPhoto
+                    senderPhoto = senderPhoto,
+                    senderUserId = currentUserId // CORRIGIDO: Passar o userId do remetente
                 )
 
                 // Para de indicar que está digitando
                 stopTypingIndicator(servicoId)
 
-                Log.d(TAG, "Mensagem enviada: $mensagem")
+                Log.d(TAG, "✅ Mensagem enviada: $mensagem")
             } catch (e: Exception) {
-                Log.e(TAG, "Erro ao enviar mensagem: ${e.message}")
+                Log.e(TAG, "❌ Erro ao enviar mensagem: ${e.message}", e)
             }
         }
     }
