@@ -3,6 +3,7 @@ package com.exemple.facilita.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -277,9 +278,9 @@ fun TelaDetalhesServicoAceito(
                         iconColor = accentCyan
                     ) {
                         DetailRow("Nome", servicoDetalhe.contratante.usuario.nome, Icons.Default.Person)
-                        Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                         DetailRow("Telefone", servicoDetalhe.contratante.usuario.telefone, Icons.Default.Phone)
-                        Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                         DetailRow("Email", servicoDetalhe.contratante.usuario.email, Icons.Default.Email)
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -292,7 +293,7 @@ fun TelaDetalhesServicoAceito(
                             Button(
                                 onClick = {
                                     val intent = Intent(Intent.ACTION_DIAL).apply {
-                                        data = Uri.parse("tel:${servicoDetalhe.contratante.usuario.telefone}")
+                                        data = "tel:${servicoDetalhe.contratante.usuario.telefone}".toUri()
                                     }
                                     context.startActivity(intent)
                                 },
@@ -300,15 +301,17 @@ fun TelaDetalhesServicoAceito(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = accentCyan
                                 ),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Phone,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.White
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Ligar", color = textPrimary, fontWeight = FontWeight.Bold)
+                                Text("Ligar", color = Color.White, fontWeight = FontWeight.Bold)
                             }
 
                             Button(
@@ -351,14 +354,14 @@ fun TelaDetalhesServicoAceito(
                         iconColor = primaryGreen
                     ) {
                         DetailRow("Categoria", servicoDetalhe.categoria.nome, Icons.Default.Category)
-                        Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
 
                         Column {
                             Row(verticalAlignment = Alignment.Top) {
                                 Icon(
                                     Icons.Default.Notes,
                                     contentDescription = null,
-                                    tint = Color.White.copy(alpha = 0.6f),
+                                    tint = textSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -366,24 +369,26 @@ fun TelaDetalhesServicoAceito(
                                     Text(
                                         "Descrição",
                                         fontSize = 13.sp,
-                                        color = Color.White.copy(alpha = 0.6f)
+                                        color = textSecondary,
+                                        fontWeight = FontWeight.Medium
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         servicoDetalhe.descricao,
                                         fontSize = 15.sp,
-                                        color = Color.White,
+                                        color = textPrimary,
+                                        fontWeight = FontWeight.SemiBold,
                                         lineHeight = 22.sp
                                     )
                                 }
                             }
                         }
 
-                        Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
 
                         servicoDetalhe.tempo_estimado?.let {
                             DetailRow("Tempo Estimado", "$it minutos", Icons.Default.Schedule)
-                            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                            HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                         }
 
                         // Valor em destaque
@@ -412,7 +417,8 @@ fun TelaDetalhesServicoAceito(
                                     Text(
                                         "Valor do Serviço",
                                         fontSize = 14.sp,
-                                        color = Color.White.copy(alpha = 0.8f)
+                                        color = textSecondary,
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
                                 Text(
@@ -427,33 +433,50 @@ fun TelaDetalhesServicoAceito(
                 }
 
                 // Card da Localização
-                servicoDetalhe.localizacao?.let { loc ->
-                    AnimatedVisibility(
-                        visible = animateCards,
-                        enter = slideInVertically(
-                            initialOffsetY = { it },
-                            animationSpec = tween(500, delayMillis = 200)
-                        ) + fadeIn()
+                // Mostrar Localização: usar localizacao do serviço ou fallback para a primeira parada
+                val displayLocalizacao: com.exemple.facilita.model.LocalizacaoDetalhe? = servicoDetalhe.localizacao ?: servicoDetalhe.paradas?.firstOrNull()?.let { parada ->
+                    com.exemple.facilita.model.LocalizacaoDetalhe(
+                        id = -1,
+                        endereco = parada.endereco_completo,
+                        bairro = "",
+                        cidade = "",
+                        estado = "",
+                        cep = "",
+                        numero = null,
+                        complemento = null,
+                        latitude = parada.lat,
+                        longitude = parada.lng
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = animateCards,
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = tween(500, delayMillis = 200)
+                    ) + fadeIn()
+                ) {
+                    FuturisticInfoCard(
+                        title = "Localização",
+                        icon = Icons.Default.LocationOn,
+                        iconColor = Color(0xFFFF5252)
                     ) {
-                        FuturisticInfoCard(
-                            title = "Localização",
-                            icon = Icons.Default.LocationOn,
-                            iconColor = Color(0xFFFF5252)
-                        ) {
+                        if (displayLocalizacao != null) {
+                            val loc = displayLocalizacao
                             DetailRow("Endereço", loc.endereco, Icons.Default.Home)
                             loc.numero?.let {
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Número", it, Icons.Default.Pin)
                             }
                             loc.complemento?.let {
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Complemento", it, Icons.Default.Info)
                             }
-                            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                            HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                             DetailRow("Bairro", loc.bairro, Icons.Default.LocationCity)
-                            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                            HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                             DetailRow("Cidade", "${loc.cidade} - ${loc.estado}", Icons.Default.LocationCity)
-                            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+                            HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                             DetailRow("CEP", loc.cep, Icons.Default.Place)
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -486,32 +509,37 @@ fun TelaDetalhesServicoAceito(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF0066FF)
+                                    containerColor = Color(0xFF1976D2)
                                 ),
                                 shape = RoundedCornerShape(16.dp),
-                                elevation = ButtonDefaults.buttonElevation(8.dp)
+                                elevation = ButtonDefaults.buttonElevation(
+                                    defaultElevation = 8.dp,
+                                    pressedElevation = 12.dp
+                                )
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    modifier = Modifier.padding(vertical = 12.dp)
                                 ) {
                                     Icon(
                                         Icons.Default.Navigation,
                                         contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(26.dp),
+                                        tint = Color.White
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             "Iniciar Navegação",
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 18.sp
+                                            fontSize = 18.sp,
+                                            color = Color.White
                                         )
                                         Text(
                                             "Tempo real com rota",
                                             fontSize = 12.sp,
-                                            color = Color.White.copy(alpha = 0.8f)
+                                            color = Color.White.copy(alpha = 0.9f)
                                         )
                                     }
                                 }
@@ -555,6 +583,21 @@ fun TelaDetalhesServicoAceito(
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
                                     color = Color(0xFF00E676)
+                                )
+                            }
+                        } else {
+                            // Quando não há localização detalhada
+                            FuturisticInfoCard(
+                                title = "Localização",
+                                icon = Icons.Default.LocationOn,
+                                iconColor = Color(0xFFFF5252)
+                            ) {
+                                Text(
+                                    text = "Localização não disponível no momento",
+                                    fontSize = 14.sp,
+                                    color = textSecondary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp)
                                 )
                             }
                         }
@@ -622,22 +665,22 @@ fun TelaDetalhesServicoAceito(
                                             Text(
                                                 text = parada.descricao,
                                                 fontSize = 14.sp,
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Medium
+                                                color = textPrimary,
+                                                fontWeight = FontWeight.SemiBold
                                             )
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
                                                 text = parada.endereco_completo,
                                                 fontSize = 12.sp,
-                                                color = Color.White.copy(alpha = 0.6f),
+                                                color = textSecondary,
                                                 lineHeight = 18.sp
                                             )
                                         }
                                     }
 
                                     if (parada != paradas.last()) {
-                                        Divider(
-                                            color = Color.White.copy(alpha = 0.1f),
+                                        HorizontalDivider(
+                                            color = textSecondary.copy(alpha = 0.2f),
                                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp)
                                         )
                                     }
@@ -670,34 +713,43 @@ fun TelaDetalhesServicoAceito(
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
-                Button(
-                    onClick = {
-                        navController.navigate("tela_pedido_em_andamento/${servicoDetalhe.id}")
-                    },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Brush.horizontalGradient(
-                            colors = listOf(primaryGreen, darkGreen)
-                        ).let { Color(0xFF00E676) }
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                        .height(56.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(primaryGreen, darkGreen)
+                            ),
+                            RoundedCornerShape(16.dp)
+                        )
                 ) {
-                    Icon(
-                        Icons.Default.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "Prosseguir para o Pedido",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textPrimary
-                    )
+                    Button(
+                        onClick = {
+                            navController.navigate("tela_pedido_em_andamento/${servicoDetalhe.id}")
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            "Prosseguir para o Pedido",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -711,18 +763,16 @@ fun FuturisticInfoCard(
     iconColor: Color,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val textPrimary = Color(0xFF212121)
+    val cardBg = Color.White
+
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF252D47).copy(alpha = 0.7f)
+            containerColor = cardBg
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                Color.White.copy(alpha = 0.1f),
-                RoundedCornerShape(20.dp)
-            )
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
@@ -738,7 +788,7 @@ fun FuturisticInfoCard(
                     modifier = Modifier
                         .size(44.dp)
                         .background(
-                            iconColor.copy(alpha = 0.2f),
+                            iconColor.copy(alpha = 0.15f),
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -755,7 +805,7 @@ fun FuturisticInfoCard(
                     text = title,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = textPrimary
                 )
             }
 
@@ -766,6 +816,9 @@ fun FuturisticInfoCard(
 
 @Composable
 fun DetailRow(label: String, value: String, icon: ImageVector) {
+    val textPrimary = Color(0xFF212121)
+    val textSecondary = Color(0xFF757575)
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -773,7 +826,7 @@ fun DetailRow(label: String, value: String, icon: ImageVector) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.6f),
+            tint = textSecondary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -781,14 +834,15 @@ fun DetailRow(label: String, value: String, icon: ImageVector) {
             Text(
                 text = label,
                 fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.6f)
+                color = textSecondary,
+                fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
                 fontSize = 15.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Medium
+                color = textPrimary,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

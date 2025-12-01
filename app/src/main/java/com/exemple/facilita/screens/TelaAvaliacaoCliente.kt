@@ -1,12 +1,15 @@
 package com.exemple.facilita.screens
 
+import android.util.Log
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -31,7 +34,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
+import com.exemple.facilita.service.RetrofitFactory
+import com.exemple.facilita.utils.TokenManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -267,7 +273,7 @@ fun ServicoFinalizadoAnimation(
                         "Serviço Finalizado!",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = Color(0xFF2E7D32),
                         textAlign = TextAlign.Center
                     )
 
@@ -276,7 +282,7 @@ fun ServicoFinalizadoAnimation(
                     Text(
                         "Parabéns! 🎉",
                         fontSize = 20.sp,
-                        color = primaryGreen,
+                        color = Color(0xFF212121),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -336,9 +342,14 @@ fun AvaliacaoClienteContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -355,7 +366,7 @@ fun AvaliacaoClienteContent(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Fechar",
-                        tint = Color.White
+                        tint = textPrimary
                     )
                 }
 
@@ -363,7 +374,7 @@ fun AvaliacaoClienteContent(
                     "Avalie o Cliente",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = textPrimary
                 )
 
                 // Espaço para simetria
@@ -377,8 +388,9 @@ fun AvaliacaoClienteContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = cardBg.copy(alpha = 0.8f)
-                )
+                    containerColor = cardBg
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -412,7 +424,7 @@ fun AvaliacaoClienteContent(
                         clienteNome,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = textPrimary
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -452,8 +464,9 @@ fun AvaliacaoClienteContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = cardBg.copy(alpha = 0.8f)
-                )
+                    containerColor = cardBg
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -465,7 +478,7 @@ fun AvaliacaoClienteContent(
                         "Como foi sua experiência?",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = textPrimary,
                         textAlign = TextAlign.Center
                     )
 
@@ -492,7 +505,7 @@ fun AvaliacaoClienteContent(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                         color = when {
-                            rating == 0f -> Color.White.copy(alpha = 0.5f)
+                            rating == 0f -> textSecondary
                             rating <= 2f -> Color(0xFFFF5252)
                             rating <= 3f -> Color(0xFFFFAB00)
                             else -> primaryGreen
@@ -508,8 +521,9 @@ fun AvaliacaoClienteContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = cardBg.copy(alpha = 0.8f)
-                )
+                    containerColor = cardBg
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -520,7 +534,7 @@ fun AvaliacaoClienteContent(
                         "Qualidades do Cliente",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = textPrimary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -545,8 +559,9 @@ fun AvaliacaoClienteContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = cardBg.copy(alpha = 0.8f)
-                )
+                    containerColor = cardBg
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -557,7 +572,7 @@ fun AvaliacaoClienteContent(
                         "Comentário (Opcional)",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = textPrimary
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -571,16 +586,18 @@ fun AvaliacaoClienteContent(
                         placeholder = {
                             Text(
                                 "Descreva sua experiência com este cliente...",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = textSecondary,
                                 fontSize = 14.sp
                             )
                         },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = textPrimary,
+                            unfocusedTextColor = textPrimary,
                             focusedBorderColor = primaryGreen,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            cursorColor = primaryGreen
+                            unfocusedBorderColor = textSecondary.copy(alpha = 0.5f),
+                            cursorColor = primaryGreen,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         ),
                         maxLines = 5,
                         shape = RoundedCornerShape(16.dp)
@@ -591,45 +608,135 @@ fun AvaliacaoClienteContent(
                     Text(
                         "${comentario.length}/500",
                         fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = textSecondary,
                         modifier = Modifier.align(Alignment.End)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Botão de enviar
-            Button(
-                onClick = {
-                    // TODO: Enviar avaliação para API
-                    showThankYou = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = rating > 0,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryGreen,
-                    disabledContainerColor = Color.Gray
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(
-                    Icons.Default.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    "Enviar Avaliação",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textPrimary
-                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Botão fixo na parte inferior
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = lightBg,
+                shadowElevation = 8.dp
+            ) {
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                var isLoading by remember { mutableStateOf(false) }
+                var errorMessage by remember { mutableStateOf<String?>(null) }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    // Mensagem de erro
+                    errorMessage?.let { error ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFEBEE)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD32F2F),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = error,
+                                    color = Color(0xFFD32F2F),
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            if (rating > 0 && !isLoading) {
+                                scope.launch {
+                                    isLoading = true
+                                    errorMessage = null
+                                    try {
+                                        val token = TokenManager.obterTokenComBearer(context)
+                                        if (token != null) {
+                                            Log.d("TelaAvaliacao", "Finalizando serviço ID: $servicoId")
+                                            val service = RetrofitFactory.getServicoService()
+                                            val response = service.finalizarServico(
+                                                idServico = servicoId,
+                                                token = token,
+                                                body = emptyMap()
+                                            )
+
+                                            if (response.isSuccessful) {
+                                                Log.d("TelaAvaliacao", "Serviço finalizado com sucesso!")
+                                                // TODO: Enviar avaliação para API quando endpoint estiver disponível
+                                                isLoading = false
+                                                showThankYou = true
+                                            } else {
+                                                errorMessage = "Erro ao finalizar serviço: ${response.code()}"
+                                                Log.e("TelaAvaliacao", "Erro: ${response.errorBody()?.string()}")
+                                                isLoading = false
+                                            }
+                                        } else {
+                                            errorMessage = "Token não encontrado"
+                                            isLoading = false
+                                        }
+                                    } catch (e: Exception) {
+                                        errorMessage = "Erro: ${e.message}"
+                                        Log.e("TelaAvaliacao", "Exceção ao finalizar serviço", e)
+                                        isLoading = false
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        enabled = rating > 0 && !isLoading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryGreen,
+                            disabledContainerColor = Color.Gray
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Send,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                "Finalizar Serviço",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -666,7 +773,7 @@ fun AnimatedStarRating(
                     .size(48.dp)
                     .scale(scale)
                     .clickable { onRatingChange(starRating.toFloat()) },
-                tint = if (isSelected) accentGold else Color.White.copy(alpha = 0.3f)
+                tint = if (isSelected) accentGold else Color(0xFF757575)
             )
         }
     }
@@ -751,7 +858,7 @@ fun QualityTag(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = if (isSelected) primaryGreen else Color.White.copy(alpha = 0.6f),
+                tint = if (isSelected) primaryGreen else Color(0xFF757575),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -759,7 +866,7 @@ fun QualityTag(
                 quality,
                 fontSize = 14.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) primaryGreen else Color.White.copy(alpha = 0.8f)
+                color = if (isSelected) primaryGreen else Color(0xFF212121)
             )
         }
     }

@@ -50,15 +50,15 @@ fun Servico.toServicoDetalhe(): ServicoDetalhe {
         localizacao = this.localizacao?.let { loc ->
             LocalizacaoDetalhe(
                 id = loc.id,
-                endereco = loc.logradouro,
-                bairro = loc.bairro,
-                cidade = loc.cidade,
+                endereco = loc.logradouro ?: "",
+                bairro = loc.bairro ?: "",
+                cidade = loc.cidade ?: "",
                 estado = "SP", // Valor padrão, pode ser ajustado
-                cep = loc.cep,
-                numero = loc.numero,
+                cep = loc.cep ?: "",
+                numero = loc.numero ?: "",
                 complemento = null,
-                latitude = loc.latitude.toDoubleOrNull() ?: 0.0,
-                longitude = loc.longitude.toDoubleOrNull() ?: 0.0
+                latitude = loc.latitude?.toDoubleOrNull() ?: 0.0,
+                longitude = loc.longitude?.toDoubleOrNull() ?: 0.0
             )
         }
     )

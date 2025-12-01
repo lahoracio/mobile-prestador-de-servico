@@ -463,6 +463,16 @@ fun AppNavHost(navController: NavHostController) {
                 )
             }
 
+            // Rota para navegação 3D com mapa
+            composable("rota_navegacao/{servicoId}") { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                TelaRotaNavegacao(
+                    navController = navController,
+                    servicoId = servicoId,
+                    servicoViewModel = servicoViewModel
+                )
+            }
+
             // Rota para tela de avaliação do cliente
             composable("avaliacao_cliente/{servicoId}/{clienteNome}/{valorServico}") { backStackEntry ->
                 val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0

@@ -2,6 +2,8 @@ package com.exemple.facilita.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import androidx.core.net.toUri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.exemple.facilita.model.LocalizacaoDetalhe
 import com.exemple.facilita.viewmodel.ServicoViewModel
 import kotlinx.coroutines.delay
 
@@ -127,6 +130,29 @@ fun TelaPedidoEmAndamento(
             }
             servicoState.servico != null -> {
                 val servico = servicoState.servico!!
+
+                // Adiciona logs para depuração sobre a presença da localização e paradas
+                LaunchedEffect(servico.id) {
+                    Log.d("TelaPedidoEmAndamento", "Serviço carregado: id=${servico.id}, status=${servico.status}")
+                    Log.d("TelaPedidoEmAndamento", "localizacao != null: ${servico.localizacao != null}")
+                    Log.d("TelaPedidoEmAndamento", "paradas != null: ${servico.paradas != null} | tamanho: ${servico.paradas?.size ?: 0}")
+                }
+
+                // Preparar um fallback de localização usando a primeira parada (se existir)
+                val displayLocalizacao: LocalizacaoDetalhe? = servico.localizacao ?: servico.paradas?.firstOrNull()?.let { parada ->
+                    LocalizacaoDetalhe(
+                        id = -1,
+                        endereco = parada.endereco_completo,
+                        bairro = "",
+                        cidade = "",
+                        estado = "",
+                        cep = "",
+                        numero = null,
+                        complemento = null,
+                        latitude = parada.lat,
+                        longitude = parada.lng
+                    )
+                }
 
                 Column(
                     modifier = Modifier
@@ -273,10 +299,10 @@ fun TelaPedidoEmAndamento(
                                 textSecondary = textSecondary
                             ) {
                                 DetailRow("Descrição", servico.descricao, Icons.Default.Description, textPrimary, textSecondary)
-                                Divider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Valor", "R$ ${servico.valor}", Icons.Default.AttachMoney, textPrimary, textSecondary)
                                 servico.tempo_estimado?.let {
-                                    Divider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
+                                    HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                     DetailRow("Tempo Estimado", "$it minutos", Icons.Default.Schedule, textPrimary, textSecondary)
                                 }
                             }
@@ -299,9 +325,9 @@ fun TelaPedidoEmAndamento(
                                 textSecondary = textSecondary
                             ) {
                                 DetailRow("Nome", servico.contratante.usuario.nome, Icons.Default.Person, textPrimary, textSecondary)
-                                Divider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Telefone", servico.contratante.usuario.telefone, Icons.Default.Phone, textPrimary, textSecondary)
-                                Divider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Email", servico.contratante.usuario.email, Icons.Default.Email, textPrimary, textSecondary)
 
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -314,7 +340,7 @@ fun TelaPedidoEmAndamento(
                                     Button(
                                         onClick = {
                                             val intent = Intent(Intent.ACTION_DIAL).apply {
-                                                data = Uri.parse("tel:${servico.contratante.usuario.telefone}")
+                                                data = "tel:${servico.contratante.usuario.telefone}".toUri()
                                             }
                                             context.startActivity(intent)
                                         },
@@ -360,47 +386,91 @@ fun TelaPedidoEmAndamento(
                         }
 
                         // Card de Localização
-                        servico.localizacao?.let { localizacao ->
-                            AnimatedVisibility(
-                                visible = animateCards,
-                                enter = slideInHorizontally(
-                                    initialOffsetX = { -it },
-                                    animationSpec = tween(500, delayMillis = 200)
-                                ) + fadeIn()
+                        AnimatedVisibility(
+                            visible = animateCards,
+                            enter = slideInHorizontally(
+                                initialOffsetX = { -it },
+                                animationSpec = tween(500, delayMillis = 200)
+                            ) + fadeIn()
+                        ) {
+                            InfoCard(
+                                title = "Localização",
+                                icon = Icons.Default.LocationOn,
+                                iconColor = Color(0xFFE53935),
+                                cardBg = cardBg,
+                                textPrimary = textPrimary,
+                                textSecondary = textSecondary
                             ) {
-                                InfoCard(
-                                    title = "Localização",
-                                    icon = Icons.Default.LocationOn,
-                                    iconColor = Color(0xFFE53935),
-                                    cardBg = cardBg,
-                                    textPrimary = textPrimary,
-                                    textSecondary = textSecondary
-                                ) {
-                                    DetailRow("Endereço", localizacao.endereco, Icons.Default.LocationOn, textPrimary, textSecondary)
-                                    Divider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                                    DetailRow("Bairro", localizacao.bairro, Icons.Default.Place, textPrimary, textSecondary)
-                                    Divider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                                    DetailRow("Cidade", "${localizacao.cidade} - ${localizacao.estado}", Icons.Default.LocationCity, textPrimary, textSecondary)
+                                if (displayLocalizacao != null) {
+                                    // Se a localização veio da parada de fallback, avise nos detalhes
+                                    val origemEhParada = servico.localizacao == null && servico.paradas?.isNotEmpty() == true
 
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    DetailRow("Endereço", displayLocalizacao.endereco, Icons.Default.LocationOn, textPrimary, textSecondary)
 
-                                    Button(
-                                        onClick = {
-                                            navController.navigate("tela_mapa_rota/${servico.id}")
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFE53935)
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Map,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
+                                    if (!displayLocalizacao.bairro.isNullOrEmpty()) {
+                                        HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
+                                        DetailRow("Bairro", displayLocalizacao.bairro, Icons.Default.Place, textPrimary, textSecondary)
+                                    }
+
+                                    if (!displayLocalizacao.cidade.isNullOrEmpty() || !displayLocalizacao.estado.isNullOrEmpty()) {
+                                        HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
+                                        DetailRow("Cidade", "${displayLocalizacao.cidade} - ${displayLocalizacao.estado}", Icons.Default.LocationCity, textPrimary, textSecondary)
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    // Indica origem da localização quando for fallback
+                                    if (origemEhParada) {
+                                        Text(
+                                            text = "(Localização obtida a partir da primeira parada)",
+                                            fontSize = 12.sp,
+                                            color = textSecondary,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Ver no Mapa")
+                                    }
+                                } else {
+                                    // Quando não há localização detalhada
+                                    Text(
+                                        text = "Localização não disponível no momento",
+                                        fontSize = 14.sp,
+                                        color = textSecondary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Button(
+                                    onClick = {
+                                        navController.navigate("rota_navegacao/${servico.id}")
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF1976D2)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Navigation,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            "Ir para Rota",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                        Text(
+                                            "Navegação 3D em tempo real",
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            fontSize = 12.sp
+                                        )
                                     }
                                 }
                             }
@@ -489,6 +559,7 @@ fun TelaPedidoEmAndamento(
 }
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 private fun InfoCard(
     title: String,
     icon: ImageVector,
@@ -584,4 +655,3 @@ private fun DetailRow(
         }
     }
 }
-

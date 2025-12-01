@@ -39,13 +39,13 @@ data class Categoria(
 
 data class Localizacao(
     val id: Int,
-    val logradouro: String,
-    val numero: String,
-    val bairro: String,
-    val cidade: String,
-    val cep: String,
-    val latitude: String,
-    val longitude: String
+    val logradouro: String? = "",
+    val numero: String? = "",
+    val bairro: String? = "",
+    val cidade: String? = "",
+    val cep: String? = "",
+    val latitude: String? = "",
+    val longitude: String? = ""
 )
 
 data class Solicitacao(

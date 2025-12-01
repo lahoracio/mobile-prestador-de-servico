@@ -96,15 +96,15 @@ fun Servico.toServicoDetalhe(): ServicoDetalhe {
         localizacao = this.localizacao?.let { loc ->
             LocalizacaoDetalhe(
                 id = loc.id,
-                endereco = loc.logradouro,
-                bairro = loc.bairro,
-                cidade = loc.cidade,
+                endereco = loc.logradouro ?: "",
+                bairro = loc.bairro ?: "",
+                cidade = loc.cidade ?: "",
                 estado = "SP",
-                cep = loc.cep,
-                numero = loc.numero,
+                cep = loc.cep ?: "",
+                numero = loc.numero ?: "",
                 complemento = null,
-                latitude = loc.latitude.toDoubleOrNull() ?: 0.0,
-                longitude = loc.longitude.toDoubleOrNull() ?: 0.0
+                latitude = loc.latitude?.toDoubleOrNull() ?: 0.0,
+                longitude = loc.longitude?.toDoubleOrNull() ?: 0.0
             )
         }
     )
@@ -172,23 +172,25 @@ fun TelaInicioPrestador(
                                 .map { servico ->
                                 val localizacao = servico.localizacao?.let { loc ->
                                     buildString {
-                                        if (loc.logradouro.isNotBlank()) {
+                                        if (!loc.logradouro.isNullOrBlank()) {
                                             append(loc.logradouro)
                                         }
-                                        if (loc.numero.isNotBlank()) {
+                                        if (!loc.numero.isNullOrBlank()) {
                                             if (isNotEmpty()) append(", ")
                                             append(loc.numero)
                                         }
-                                        if (loc.bairro.isNotBlank()) {
+                                        if (!loc.bairro.isNullOrBlank()) {
                                             if (isNotEmpty()) append(" - ")
                                             append(loc.bairro)
                                         }
-                                        if (loc.cidade.isNotBlank()) {
+                                        if (!loc.cidade.isNullOrBlank()) {
                                             if (isNotEmpty()) append(", ")
                                             append(loc.cidade)
                                         }
                                         if (isEmpty()) {
-                                            append(loc.bairro.ifBlank { loc.cidade.ifBlank { "Localização disponível" } })
+                                            append(loc.bairro?.takeIf { it.isNotBlank() }
+                                                ?: loc.cidade?.takeIf { it.isNotBlank() }
+                                                ?: "Localização disponível")
                                         }
                                     }
                                 } ?: "Não informado"
