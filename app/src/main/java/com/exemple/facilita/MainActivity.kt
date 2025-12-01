@@ -28,19 +28,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.exemple.facilita.screens.*
-import com.exemple.facilita.screens.TelaChatAoVivo
-import com.exemple.facilita.screens.TelaPedidoEmAndamento
 import com.exemple.facilita.viewmodel.PerfilViewModel
 import com.exemple.facilita.viewmodel.ServicoViewModel
-import com.exemple.facilita.viewmodel.ChatViewModel
-import com.exemple.facilita.call.CallViewModel
-import com.exemple.facilita.data.service.WebSocketService
 import com.exemple.facilita.utils.TokenManager
 import com.exemple.facilita.service.RetrofitFactory
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import com.exemple.facilita.webrtc.WebRtcModule
-import com.exemple.facilita.navigation.addCallNavigation
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,10 +54,6 @@ fun AppNavHost(navController: NavHostController) {
     val servicoViewModel: ServicoViewModel = viewModel()
     val notificacaoViewModel: com.exemple.facilita.viewmodel.NotificacaoServicoViewModel = viewModel()
 
-    // 🔴 ADICIONE ESTES VIEWMODELS PARA CHAMADAS
-    val callViewModel: CallViewModel = viewModel()
-    val webSocketService = remember { WebSocketService() }
-
     val context = LocalContext.current
     val token = TokenManager.obterTokenComBearer(context) ?: ""
 
@@ -73,21 +62,11 @@ fun AppNavHost(navController: NavHostController) {
     val mostrarNotificacao by notificacaoViewModel.mostrarNotificacao.collectAsState()
     val tempoRestante by notificacaoViewModel.tempoRestante.collectAsState()
 
-    // 🔴 INICIALIZA O WEBRTC MODULE AQUI (com os parâmetros necessários)
-    LaunchedEffect(Unit) {
-        WebRtcModule.initialize(context, webSocketService, callViewModel)
-    }
-
     // Inicia monitoramento quando o prestador estiver logado
     LaunchedEffect(token) {
         if (token.isNotEmpty()) {
             notificacaoViewModel.iniciarMonitoramento(token)
         }
-    }
-
-    // 🔴 INICIALIZA O WEBSOCKET PARA CHAMADAS
-    LaunchedEffect(Unit) {
-        webSocketService.connect()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -96,8 +75,6 @@ fun AppNavHost(navController: NavHostController) {
             startDestination = "splash_screen"
         ) {
 
-            // 🔴 ADICIONE ESTA LINHA - INCLUI TODAS AS ROTAS DE CHAMADA
-            addCallNavigation(navController, webSocketService, callViewModel)
 
             composable("splash_screen") {
                 SplashScreen(navController)
@@ -551,6 +528,52 @@ fun AppNavHost(navController: NavHostController) {
                     contratanteNome = contratanteNome,
                     prestadorId = prestadorId,
                     prestadorNome = prestadorNome
+                )
+            }
+
+            // Rota para videochamada
+            composable(
+                "video_call/{servicoId}/{userId}/{userName}/{targetUserId}/{targetUserName}/{callType}"
+            ) { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                val userName = URLDecoder.decode(backStackEntry.arguments?.getString("userName") ?: "", StandardCharsets.UTF_8.toString())
+                val targetUserId = backStackEntry.arguments?.getString("targetUserId")?.toIntOrNull() ?: 0
+                val targetUserName = URLDecoder.decode(backStackEntry.arguments?.getString("targetUserName") ?: "", StandardCharsets.UTF_8.toString())
+                val callType = backStackEntry.arguments?.getString("callType") ?: "video"
+
+                TelaVideoCall(
+                    navController = navController,
+                    servicoId = servicoId,
+                    userId = userId,
+                    userName = userName,
+                    targetUserId = targetUserId,
+                    targetUserName = targetUserName,
+                    callType = callType
+                )
+            }
+
+            // Rota para chamada recebida
+            composable(
+                "incoming_call/{servicoId}/{callerId}/{callerName}/{callType}/{callId}/{userId}/{userName}"
+            ) { backStackEntry ->
+                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
+                val callerId = backStackEntry.arguments?.getString("callerId")?.toIntOrNull() ?: 0
+                val callerName = URLDecoder.decode(backStackEntry.arguments?.getString("callerName") ?: "", StandardCharsets.UTF_8.toString())
+                val callType = backStackEntry.arguments?.getString("callType") ?: "video"
+                val callId = backStackEntry.arguments?.getString("callId") ?: ""
+                val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                val userName = URLDecoder.decode(backStackEntry.arguments?.getString("userName") ?: "", StandardCharsets.UTF_8.toString())
+
+                TelaIncomingCall(
+                    navController = navController,
+                    servicoId = servicoId,
+                    callerId = callerId,
+                    callerName = callerName,
+                    callType = callType,
+                    callId = callId,
+                    userId = userId,
+                    userName = userName
                 )
             }
 

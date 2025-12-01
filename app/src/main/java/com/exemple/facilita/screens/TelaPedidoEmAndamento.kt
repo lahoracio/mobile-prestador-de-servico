@@ -335,7 +335,7 @@ fun TelaPedidoEmAndamento(
                                 // Botões de contato
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Button(
                                         onClick = {
@@ -353,10 +353,10 @@ fun TelaPedidoEmAndamento(
                                         Icon(
                                             Icons.Default.Phone,
                                             contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Ligar")
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Ligar", fontSize = 13.sp)
                                     }
 
                                     Button(
@@ -376,10 +376,33 @@ fun TelaPedidoEmAndamento(
                                         Icon(
                                             Icons.Default.Chat,
                                             contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Chat")
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Chat", fontSize = 13.sp)
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            navController.navigate(
+                                                "video_call/${servico.id}/${servico.id_prestador}/" +
+                                                        "${Uri.encode(servico.prestador?.usuario?.nome ?: "Prestador")}/" +
+                                                        "${servico.id_contratante}/${Uri.encode(servico.contratante.usuario.nome)}/video"
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF1976D2)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Videocam,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Vídeo", fontSize = 13.sp)
                                     }
                                 }
                             }

@@ -23,11 +23,12 @@ object RetrofitFactory {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // Configurar OkHttpClient com timeouts aumentados e dispatcher customizado
+    // Configurar OkHttpClient com timeouts aumentados e retry automático
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS) // Timeout de conexão: 60 segundos
-        .readTimeout(60, TimeUnit.SECONDS)    // Timeout de leitura: 60 segundos
-        .writeTimeout(60, TimeUnit.SECONDS)   // Timeout de escrita: 60 segundos
+        .connectTimeout(30, TimeUnit.SECONDS) // Timeout de conexão: 30 segundos
+        .readTimeout(30, TimeUnit.SECONDS)    // Timeout de leitura: 30 segundos
+        .writeTimeout(30, TimeUnit.SECONDS)   // Timeout de escrita: 30 segundos
+        .retryOnConnectionFailure(true)       // Retry automático em falhas de conexão
         .addInterceptor(loggingInterceptor)   // Adicionar logging para ver o JSON
         .dispatcher(okhttp3.Dispatcher().apply {
             maxRequests = 64
