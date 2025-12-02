@@ -289,53 +289,6 @@ fun AppNavHost(navController: NavHostController) {
             //     TelaInformacoesVeiculo(navController, tiposVeiculo, perfilViewModel)
             // }
 
-            // Rota para tela de detalhes do serviço aceito
-            composable("tela_detalhes_servico_aceito/{servicoId}") { backStackEntry ->
-                val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0
-                val context = LocalContext.current
-
-                // Observar o estado do serviço
-                val servicoState by servicoViewModel.servicoState.collectAsState()
-
-                LaunchedEffect(servicoId) {
-                    servicoViewModel.carregarServico(servicoId, context)
-                }
-
-                when {
-                    servicoState.isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Color(0xFF00FF88))
-                        }
-                    }
-                    servicoState.servico != null -> {
-                        TelaDetalhesServicoAceito(
-                            navController = navController,
-                            servicoDetalhe = servicoState.servico!!
-                        )
-                    }
-                    servicoState.error != null -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = servicoState.error ?: "Erro desconhecido",
-                                    color = Color.Red
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { navController.popBackStack() }) {
-                                    Text("Voltar")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             // Rota para tela de mapa com rota (estilo Uber)
             composable("tela_mapa_rota/{servicoId}") { backStackEntry ->
                 val servicoId = backStackEntry.arguments?.getString("servicoId")?.toIntOrNull() ?: 0

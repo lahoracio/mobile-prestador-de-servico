@@ -273,7 +273,7 @@ fun TelaPedidoEmAndamento(
                                     Spacer(modifier = Modifier.height(8.dp))
 
                                     Text(
-                                        text = "Status: ${servico.status}",
+                                        text = "Status: ${servico.status ?: "Não definido"}",
                                         fontSize = 14.sp,
                                         color = textSecondary,
                                         textAlign = TextAlign.Center
@@ -298,7 +298,7 @@ fun TelaPedidoEmAndamento(
                                 textPrimary = textPrimary,
                                 textSecondary = textSecondary
                             ) {
-                                DetailRow("Descrição", servico.descricao, Icons.Default.Description, textPrimary, textSecondary)
+                                DetailRow("Descrição", servico.descricao ?: "Não informado", Icons.Default.Description, textPrimary, textSecondary)
                                 HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Valor", "R$ ${servico.valor}", Icons.Default.AttachMoney, textPrimary, textSecondary)
                                 servico.tempo_estimado?.let {
@@ -324,11 +324,11 @@ fun TelaPedidoEmAndamento(
                                 textPrimary = textPrimary,
                                 textSecondary = textSecondary
                             ) {
-                                DetailRow("Nome", servico.contratante.usuario.nome, Icons.Default.Person, textPrimary, textSecondary)
+                                DetailRow("Nome", servico.contratante.usuario.nome ?: "Não informado", Icons.Default.Person, textPrimary, textSecondary)
                                 HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                                DetailRow("Telefone", servico.contratante.usuario.telefone, Icons.Default.Phone, textPrimary, textSecondary)
+                                DetailRow("Telefone", servico.contratante.usuario.telefone ?: "Não informado", Icons.Default.Phone, textPrimary, textSecondary)
                                 HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                                DetailRow("Email", servico.contratante.usuario.email, Icons.Default.Email, textPrimary, textSecondary)
+                                DetailRow("Email", servico.contratante.usuario.email ?: "Não informado", Icons.Default.Email, textPrimary, textSecondary)
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -339,11 +339,14 @@ fun TelaPedidoEmAndamento(
                                 ) {
                                     Button(
                                         onClick = {
-                                            val intent = Intent(Intent.ACTION_DIAL).apply {
-                                                data = "tel:${servico.contratante.usuario.telefone}".toUri()
+                                            servico.contratante.usuario.telefone?.let { 
+                                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                    data = "tel:$it".toUri()
+                                                }
+                                                context.startActivity(intent)
                                             }
-                                            context.startActivity(intent)
                                         },
+                                        enabled = !servico.contratante.usuario.telefone.isNullOrEmpty(),
                                         modifier = Modifier.weight(1f),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = primaryGreen
@@ -361,10 +364,12 @@ fun TelaPedidoEmAndamento(
 
                                     Button(
                                         onClick = {
+                                            val contratanteNome = Uri.encode(servico.contratante.usuario.nome ?: "Contratante")
+                                            val prestadorNome = Uri.encode(servico.prestador?.usuario?.nome ?: "Prestador")
                                             navController.navigate(
                                                 "chat_ao_vivo/${servico.id}/${servico.id_contratante}/" +
-                                                        "${Uri.encode(servico.contratante.usuario.nome)}/" +
-                                                        "${servico.id_prestador}/${Uri.encode(servico.prestador?.usuario?.nome ?: "Prestador")}"
+                                                        "$contratanteNome/" +
+                                                        "${servico.id_prestador}/$prestadorNome"
                                             )
                                         },
                                         modifier = Modifier.weight(1f),
@@ -384,10 +389,12 @@ fun TelaPedidoEmAndamento(
 
                                     Button(
                                         onClick = {
+                                            val contratanteNome = Uri.encode(servico.contratante.usuario.nome ?: "Contratante")
+                                            val prestadorNome = Uri.encode(servico.prestador?.usuario?.nome ?: "Prestador")
                                             navController.navigate(
                                                 "video_call/${servico.id}/${servico.id_prestador}/" +
-                                                        "${Uri.encode(servico.prestador?.usuario?.nome ?: "Prestador")}/" +
-                                                        "${servico.id_contratante}/${Uri.encode(servico.contratante.usuario.nome)}/video"
+                                                        "$prestadorNome/" +
+                                                        "${servico.id_contratante}/$contratanteNome/video"
                                             )
                                         },
                                         modifier = Modifier.weight(1f),
@@ -428,7 +435,7 @@ fun TelaPedidoEmAndamento(
                                     // Se a localização veio da parada de fallback, avise nos detalhes
                                     val origemEhParada = servico.localizacao == null && servico.paradas?.isNotEmpty() == true
 
-                                    DetailRow("Endereço", displayLocalizacao.endereco, Icons.Default.LocationOn, textPrimary, textSecondary)
+                                    DetailRow("Endereço", displayLocalizacao.endereco ?: "Não informado", Icons.Default.LocationOn, textPrimary, textSecondary)
 
                                     if (!displayLocalizacao.bairro.isNullOrEmpty()) {
                                         HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
@@ -437,7 +444,7 @@ fun TelaPedidoEmAndamento(
 
                                     if (!displayLocalizacao.cidade.isNullOrEmpty() || !displayLocalizacao.estado.isNullOrEmpty()) {
                                         HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                                        DetailRow("Cidade", "${displayLocalizacao.cidade} - ${displayLocalizacao.estado}", Icons.Default.LocationCity, textPrimary, textSecondary)
+                                        DetailRow("Cidade", "${displayLocalizacao.cidade ?: ""} - ${displayLocalizacao.estado ?: ""}", Icons.Default.LocationCity, textPrimary, textSecondary)
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -509,9 +516,10 @@ fun TelaPedidoEmAndamento(
                         ) {
                             Button(
                                 onClick = {
+                                    val clienteNome = Uri.encode(servico.contratante.usuario.nome ?: "Cliente")
                                     navController.navigate(
                                         "avaliacao_cliente/${servico.id}/" +
-                                                "${Uri.encode(servico.contratante.usuario.nome)}/" +
+                                                "$clienteNome/" +
                                                 servico.valor
                                     )
                                 },

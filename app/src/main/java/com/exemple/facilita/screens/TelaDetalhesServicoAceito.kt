@@ -277,11 +277,11 @@ fun TelaDetalhesServicoAceito(
                         icon = Icons.Default.Person,
                         iconColor = accentCyan
                     ) {
-                        DetailRow("Nome", servicoDetalhe.contratante.usuario.nome, Icons.Default.Person)
+                        DetailRow("Nome", servicoDetalhe.contratante.usuario.nome ?: "Não informado", Icons.Default.Person)
                         HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                        DetailRow("Telefone", servicoDetalhe.contratante.usuario.telefone, Icons.Default.Phone)
+                        DetailRow("Telefone", servicoDetalhe.contratante.usuario.telefone ?: "Não informado", Icons.Default.Phone)
                         HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                        DetailRow("Email", servicoDetalhe.contratante.usuario.email, Icons.Default.Email)
+                        DetailRow("Email", servicoDetalhe.contratante.usuario.email ?: "Não informado", Icons.Default.Email)
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -292,11 +292,14 @@ fun TelaDetalhesServicoAceito(
                         ) {
                             Button(
                                 onClick = {
-                                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                                        data = "tel:${servicoDetalhe.contratante.usuario.telefone}".toUri()
+                                    servicoDetalhe.contratante.usuario.telefone?.let {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = "tel:$it".toUri()
+                                        }
+                                        context.startActivity(intent)
                                     }
-                                    context.startActivity(intent)
                                 },
+                                enabled = servicoDetalhe.contratante.usuario.telefone != null,
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = accentCyan
@@ -318,7 +321,7 @@ fun TelaDetalhesServicoAceito(
                                 onClick = {
                                     // Navegar para o chat
                                     navController.navigate(
-                                        "chat_ao_vivo/${servicoDetalhe.id}/${servicoDetalhe.id_contratante}/${servicoDetalhe.contratante.usuario.nome}/${servicoDetalhe.id_prestador}/${servicoDetalhe.prestador?.usuario?.nome ?: "Prestador"}"
+                                        "chat_ao_vivo/${servicoDetalhe.id}/${servicoDetalhe.id_contratante}/${servicoDetalhe.contratante.usuario.nome ?: "Contratante"}/${servicoDetalhe.id_prestador}/${servicoDetalhe.prestador?.usuario?.nome ?: "Prestador"}"
                                     )
                                 },
                                 modifier = Modifier.weight(1f),
@@ -433,7 +436,6 @@ fun TelaDetalhesServicoAceito(
                 }
 
                 // Card da Localização
-                // Mostrar Localização: usar localizacao do serviço ou fallback para a primeira parada
                 val displayLocalizacao: com.exemple.facilita.model.LocalizacaoDetalhe? = servicoDetalhe.localizacao ?: servicoDetalhe.paradas?.firstOrNull()?.let { parada ->
                     com.exemple.facilita.model.LocalizacaoDetalhe(
                         id = -1,
@@ -463,7 +465,7 @@ fun TelaDetalhesServicoAceito(
                     ) {
                         if (displayLocalizacao != null) {
                             val loc = displayLocalizacao
-                            DetailRow("Endereço", loc.endereco, Icons.Default.Home)
+                            DetailRow("Endereço", loc.endereco ?: "Não informado", Icons.Default.Home)
                             loc.numero?.let {
                                 HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
                                 DetailRow("Número", it, Icons.Default.Pin)
@@ -473,18 +475,17 @@ fun TelaDetalhesServicoAceito(
                                 DetailRow("Complemento", it, Icons.Default.Info)
                             }
                             HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                            DetailRow("Bairro", loc.bairro, Icons.Default.LocationCity)
+                            DetailRow("Bairro", loc.bairro ?: "Não informado", Icons.Default.LocationCity)
                             HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                            DetailRow("Cidade", "${loc.cidade} - ${loc.estado}", Icons.Default.LocationCity)
+                            DetailRow("Cidade", "${loc.cidade ?: ""} - ${loc.estado ?: ""}", Icons.Default.LocationCity)
                             HorizontalDivider(color = textSecondary.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 12.dp))
-                            DetailRow("CEP", loc.cep, Icons.Default.Place)
+                            DetailRow("CEP", loc.cep ?: "Não informado", Icons.Default.Place)
 
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // Botão de Navegação Interna (Tempo Real) - PRINCIPAL
                             Button(
                                 onClick = {
-                                    // Obter localização atual (origem)
                                     val localizacaoManager = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
                                     try {
                                         val ultimaLocalizacao = localizacaoManager.getLastKnownLocation(
@@ -586,20 +587,13 @@ fun TelaDetalhesServicoAceito(
                                 )
                             }
                         } else {
-                            // Quando não há localização detalhada
-                            FuturisticInfoCard(
-                                title = "Localização",
-                                icon = Icons.Default.LocationOn,
-                                iconColor = Color(0xFFFF5252)
-                            ) {
-                                Text(
-                                    text = "Localização não disponível no momento",
-                                    fontSize = 14.sp,
-                                    color = textSecondary,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp)
-                                )
-                            }
+                            Text(
+                                text = "Localização não disponível no momento",
+                                fontSize = 14.sp,
+                                color = textSecondary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                            )
                         }
                     }
                 }
@@ -652,7 +646,7 @@ fun TelaDetalhesServicoAceito(
 
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = parada.tipo,
+                                                text = parada.tipo ?: "PARADA",
                                                 fontSize = 12.sp,
                                                 color = when (parada.tipo) {
                                                     "ORIGEM" -> Color(0xFF4CAF50)
@@ -663,14 +657,14 @@ fun TelaDetalhesServicoAceito(
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                text = parada.descricao,
+                                                text = parada.descricao ?: "",
                                                 fontSize = 14.sp,
                                                 color = textPrimary,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = parada.endereco_completo,
+                                                text = parada.endereco_completo ?: "",
                                                 fontSize = 12.sp,
                                                 color = textSecondary,
                                                 lineHeight = 18.sp
